@@ -5,7 +5,6 @@ export type RequestRow = {
   publicReference: string;
   fullName: string;
   email: string;
-  department: string;
   projectType: string;
   projectTitle: string;
   description: string;
@@ -129,7 +128,6 @@ export function renderAdminNotificationEmail(
     ${fieldRows([
       { label: "Full Name", value: request.fullName },
       { label: "Email", value: request.email },
-      { label: "Department / Team", value: request.department },
       { label: "Project Type", value: request.projectType },
       { label: "Project Title", value: request.projectTitle },
       { label: "Description", value: request.description },
@@ -149,7 +147,6 @@ Reference: ${request.publicReference}
 ${plainTextLines([
     { label: "Full Name", value: request.fullName },
     { label: "Email", value: request.email },
-    { label: "Department / Team", value: request.department },
     { label: "Project Type", value: request.projectType },
     { label: "Project Title", value: request.projectTitle },
     { label: "Description", value: request.description },

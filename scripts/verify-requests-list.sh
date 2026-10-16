@@ -53,7 +53,6 @@ ensure_request() {
   curl -sS -b "$JAR" -c "$JAR" -X POST \
     -F "fullName=Verifier" \
     -F "email=verifier@example.com" \
-    -F "department=$dept" \
     -F "projectType=$ptype" \
     -F "projectTitle=$title" \
     -F "description=$desc" \
@@ -169,7 +168,6 @@ if ! echo "$LIST_BODY" | grep -q '"status":"Submitted"'; then
   curl -sS -b "$JAR" -c "$JAR" -X POST \
     -F "fullName=Verifier" \
     -F "email=verifier@example.com" \
-    -F "department=Marketing" \
     -F "projectType=Deck Redesign" \
     -F "projectTitle=$T" \
     -F "description=Submitted seed description with enough text to pass validation rules." \
@@ -193,7 +191,7 @@ fi
 # ---- Criterion 2: table markup contains key columns and badges ----
 # Columns are verified in HTML; badge values are verified against the API list so we
 # don't depend on which 25 rows happen to land on the first page.
-for needle in "Project Title" "Requester" "Department" "Priority" "Status" "Due Date" "Submitted" "Actions"; do
+for needle in "Project Title" "Requester" "Priority" "Status" "Due Date" "Submitted" "Actions"; do
   if echo "$BODY" | grep -q "$needle"; then
     echo "PASS: found $needle"
     PASS=$((PASS+1))
@@ -214,7 +212,7 @@ for needle in "Low" "Medium" "High" "Urgent" "Submitted" "In Review" "Planned" "
 done
 
 # ---- Criterion 3: search input and filter dropdowns present ----
-for needle in "Search title" "Status" "Priority" "Project Type" "Department"; do
+for needle in "Search title" "Status" "Priority" "Project Type"; do
   if echo "$BODY" | grep -q "$needle"; then
     echo "PASS: found search/filter element $needle"
     PASS=$((PASS+1))

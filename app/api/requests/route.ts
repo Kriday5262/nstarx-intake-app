@@ -25,7 +25,6 @@ const ALLOWED_MIME_TYPES = [
 const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required.").max(255, "Too long."),
   email: z.string().min(1, "Email is required.").email("Please enter a valid email.").max(255, "Too long."),
-  department: z.string().max(255).optional(),
   projectType: z.enum(["Deck Redesign", "Document Branding", "Video Creation", "Website Work", "Other"]),
   projectTitle: z.string().min(1, "Project title is required.").max(500, "Too long."),
   description: z.string().min(50, "Description must be at least 50 characters.").max(5000, "Description must be 5000 characters or less."),
@@ -117,7 +116,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         publicReference: reference,
         fullName: data.fullName,
         email: data.email,
-        department: data.department ?? "",
         projectType: data.projectType,
         projectTitle: data.projectTitle,
         description: data.description,
@@ -165,7 +163,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       publicReference: requestRow.publicReference,
       fullName: requestRow.fullName,
       email: requestRow.email,
-      department: requestRow.department || "",
       projectType: requestRow.projectType,
       projectTitle: requestRow.projectTitle,
       description: requestRow.description,

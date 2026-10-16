@@ -22,7 +22,6 @@ export default async function RequestsPage() {
     publicReference: r.publicReference,
     fullName: r.fullName,
     email: r.email,
-    department: r.department,
     projectType: r.projectType,
     projectTitle: r.projectTitle,
     description: r.description,

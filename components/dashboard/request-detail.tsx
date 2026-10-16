@@ -47,7 +47,6 @@ interface AdminRequest {
   publicReference: string;
   fullName: string;
   email: string;
-  department: string;
   projectType: string;
   projectTitle: string;
   description: string;
@@ -311,7 +310,6 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
             <dl className="grid gap-4 sm:grid-cols-2">
               <DetailItem label="Requester" value={requestData.fullName} />
               <DetailItem label="Email" value={requestData.email} />
-              <DetailItem label="Department" value={requestData.department} />
               <DetailItem label="Project type" value={requestData.projectType} />
               <DetailItem
                 label="Desired deadline"

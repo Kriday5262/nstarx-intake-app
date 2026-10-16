@@ -68,7 +68,6 @@ export interface AdminRequest {
   publicReference: string;
   fullName: string;
   email: string;
-  department: string;
   projectType: string;
   projectTitle: string;
   description: string;
@@ -87,7 +86,6 @@ interface RequestsListProps {
 type SortKey =
   | "projectTitle"
   | "fullName"
-  | "department"
   | "projectType"
   | "priority"
   | "status"
@@ -160,9 +158,6 @@ function sortRequests(
         break;
       case "fullName":
         comparison = a.fullName.localeCompare(b.fullName);
-        break;
-      case "department":
-        comparison = a.department.localeCompare(b.department);
         break;
       case "projectType":
         comparison = a.projectType.localeCompare(b.projectType);
@@ -244,7 +239,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [priorityFilter, setPriorityFilter] = React.useState<string>("all");
   const [typeFilter, setTypeFilter] = React.useState<string>("all");
-  const [departmentFilter, setDepartmentFilter] = React.useState<string>("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("submittedAt");
   const [sortDir, setSortDir] = React.useState<SortDir>("desc");
   const [page, setPage] = React.useState(1);
@@ -268,8 +262,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       if (priorityFilter !== "all" && r.priority !== priorityFilter)
         return false;
       if (typeFilter !== "all" && r.projectType !== typeFilter) return false;
-      if (departmentFilter !== "all" && r.department !== departmentFilter)
-        return false;
       if (query) {
         const hay = [
           r.projectTitle,
@@ -284,14 +276,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       }
       return true;
     });
-  }, [
-    requests,
-    statusFilter,
-    priorityFilter,
-    typeFilter,
-    departmentFilter,
-    query,
-  ]);
+  }, [requests, statusFilter, priorityFilter, typeFilter, query]);
 
   const sorted = React.useMemo(
     () => sortRequests(filtered, sortKey, sortDir),
@@ -309,7 +294,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, priorityFilter, typeFilter, departmentFilter, search]);
+  }, [statusFilter, priorityFilter, typeFilter, search]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -412,15 +397,13 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
     setStatusFilter("all");
     setPriorityFilter("all");
     setTypeFilter("all");
-    setDepartmentFilter("all");
   }
 
   const hasFilters =
     search ||
     statusFilter !== "all" ||
     priorityFilter !== "all" ||
-    typeFilter !== "all" ||
-    departmentFilter !== "all";
+    typeFilter !== "all";
 
   return (
     <div className="space-y-4">
@@ -463,12 +446,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             value={typeFilter}
             options={PROJECT_TYPES}
             onChange={setTypeFilter}
-          />
-          <FilterSelect
-            label="Department"
-            value={departmentFilter}
-            options={DEPARTMENTS}
-            onChange={setDepartmentFilter}
           />
           {hasFilters && (
             <Button
@@ -514,15 +491,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                   <HeaderCell
                     label="Requester"
                     sortKey="fullName"
-                    currentKey={sortKey}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                </th>
-                <th className="px-0 py-0">
-                  <HeaderCell
-                    label="Department"
-                    sortKey="department"
                     currentKey={sortKey}
                     currentDir={sortDir}
                     onSort={handleSort}
@@ -613,9 +581,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                       <div className="text-xs text-brand-ink/60">
                         {request.email}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-brand-ink/80">
-                      {request.department}
                     </td>
                     <td className="px-4 py-3">
                       <Badge>{request.projectType}</Badge>
@@ -725,10 +690,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     <div className="text-xs text-brand-ink/60 truncate">
                       {request.email}
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Department</div>
-                    <div className="text-brand-ink/80">{request.department}</div>
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Type</div>

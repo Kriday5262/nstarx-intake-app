@@ -39,7 +39,6 @@ export const requests = pgTable("requests", {
   publicReference: varchar("public_reference", { length: 32 }).notNull().unique(),
   fullName: varchar("full_name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
-  department: varchar("department", { length: 255 }).notNull(),
   projectType: projectTypeEnum("project_type").notNull(),
   projectTitle: varchar("project_title", { length: 500 }).notNull(),
   description: text("description").notNull(),

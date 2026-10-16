@@ -44,7 +44,6 @@ export default async function RequestDetailPage({ params }: PageProps) {
     publicReference: requestRow.publicReference,
     fullName: requestRow.fullName,
     email: requestRow.email,
-    department: requestRow.department,
     projectType: requestRow.projectType,
     projectTitle: requestRow.projectTitle,
     description: requestRow.description,

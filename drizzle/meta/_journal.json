@@ -15,6 +15,20 @@
       "when": 1792152142630,
       "tag": "0001_admin_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792162000000,
+      "tag": "0002_remove_department_not_null",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792163000000,
+      "tag": "0003_drop_department_column",
+      "breakpoints": true
     }
   ]
 }

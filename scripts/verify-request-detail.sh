@@ -33,7 +33,6 @@ FRESH_TITLE="Request Detail Test ($(date +%s%N))"
 curl -sS -b "$JAR" -c "$JAR" -X POST \
   -F "fullName=Detail Verifier" \
   -F "email=detail@example.com" \
-  -F "department=Marketing" \
   -F "projectType=Other" \
   -F "projectTitle=$FRESH_TITLE" \
   -F "description=Detail page verification description with enough text to satisfy the minimum length validation rule for the intake form." \
@@ -51,7 +50,6 @@ if [[ "$DETAIL_HTML" == *"Request details"* \
    && "$DETAIL_HTML" == *"Description"* \
    && "$DETAIL_HTML" == *"Requester"* \
    && "$DETAIL_HTML" == *"Email"* \
-   && "$DETAIL_HTML" == *"Department"* \
    && "$DETAIL_HTML" == *"Project type"* \
    && "$DETAIL_HTML" == *"Desired deadline"* \
    && "$DETAIL_HTML" == *"Submitted"* ]]; then

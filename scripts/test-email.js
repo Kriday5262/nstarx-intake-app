@@ -30,7 +30,6 @@ const sampleRequest = {
   publicReference: "NSX-20261016-001",
   fullName: "Jane Doe",
   email: "jane.doe@example.com",
-  department: "Marketing",
   projectType: "Deck Redesign",
   projectTitle: "Q4 Brand Refresh Deck",
   description:
@@ -88,7 +87,6 @@ function run() {
     "admin notification html contains all submitted fields",
     admin.html.includes("Jane Doe") &&
       admin.html.includes("jane.doe@example.com") &&
-      admin.html.includes("Marketing") &&
       admin.html.includes("Deck Redesign") &&
       admin.html.includes("Q4 Brand Refresh Deck") &&
       admin.html.includes("NStarX visual identity") &&
@@ -128,12 +126,7 @@ function run() {
       'href="https://nstarx-intake.kamkazi.com/status?ref=NSX-20261016-001',
     ) && confirm.html.includes("jane.doe%40example.com"),
   );
-  assert(
-    "submitter confirmation summary excludes full submission details admin sees",
-    !confirm.html.includes("Department / Team"),
-  );
 
-  // HTML escaping verification.
   const injectionRequest = {
     ...sampleRequest,
     fullName: "<script>alert(1)</script>",

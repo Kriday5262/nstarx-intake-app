@@ -1,0 +1,1 @@
+ALTER TABLE "requests" ALTER COLUMN "department" DROP NOT NULL;

@@ -52,7 +52,6 @@ FRESH_TITLE="Workflow API Test ($(date +%s%N))"
 curl -sS -b "$JAR" -c "$JAR" -X POST \
   -F "fullName=Workflow Verifier" \
   -F "email=workflow@example.com" \
-  -F "department=Marketing" \
   -F "projectType=Other" \
   -F "projectTitle=$FRESH_TITLE" \
   -F "description=Workflow test description with enough text to satisfy the minimum length validation rule for the intake form." \
@@ -125,7 +124,6 @@ PIVOT_TITLE="Workflow Pivot Test ($(date +%s%N))"
 curl -sS -b "$JAR" -c "$JAR" -X POST \
   -F "fullName=Workflow Pivot" \
   -F "email=pivot@example.com" \
-  -F "department=Sales" \
   -F "projectType=Other" \
   -F "projectTitle=$PIVOT_TITLE" \
   -F "description=Workflow pivot test description with enough text to satisfy the minimum length validation rule for the intake form." \
