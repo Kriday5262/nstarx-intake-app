@@ -1,5 +1,16 @@
-node_modules/
+# Build artifacts
 .next/
-.env.local
+tsconfig.tsbuildinfo
+
+# Logs
 *.log
 
+# Local env files
+.env.local
+.env
+
+# OS files
+.DS_Store
+
+# Dependencies
+node_modules/

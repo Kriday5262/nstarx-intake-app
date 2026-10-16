@@ -1,0 +1,22 @@
+{
+	# Internal (self-signed) TLS on the local HTTPS port. Cloudflare handles the
+	# public certificate at the edge; Caddy only needs to terminate TLS between
+	# Cloudflare and itself. Replace `tls internal` with a real cert/key if you
+	# want Caddy to present a publicly trusted certificate.
+	debug
+	default_sni localhost
+	http_port 8089
+	https_port 8444
+}
+
+# Plain HTTP catch-all on the local HTTP port redirects everything to HTTPS.
+http://* {
+	redir https://{host}:8444{uri} 308
+}
+
+# HTTPS termination on the custom port. Because this uses host networking,
+# Caddy binds directly to the host on 8444.
+https://localhost, https://nstarx-intake.kamkazi.com, https://127.0.0.1:8444 {
+	tls internal
+	reverse_proxy 127.0.0.1:8090
+}

@@ -1,0 +1,57 @@
+# NStarX Intake production stack.
+#
+# Runs the Next.js app in a standalone container on the host network namespace
+# (to avoid bridge-network iptables issues seen on this Fedora host) and fronts
+# it with a Caddy reverse-proxy that terminates HTTPS on ports 8444/8089.
+#
+# Postgres is the existing Kamkazi DB container on the host, reachable on
+# 127.0.0.1:5434.
+#
+# The uploads directory is mounted from the exFAT NAS share. The container runs
+# as uid 1000 (node) so it can write there.
+
+name: nstarx-intake
+
+services:
+  app:
+    build:
+      context: .
+      network: host
+    image: nstarx-intake-app
+    container_name: nstarx-intake-app
+    restart: unless-stopped
+    user: "1000:1000"
+    network_mode: host
+    env_file: ./.env
+    environment:
+      TZ: Asia/Kolkata
+      NODE_ENV: production
+      PORT: "8090"
+      HOSTNAME: 0.0.0.0
+      # Postgres is on the Docker host, exposed on 127.0.0.1:5434.
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: "5434"
+    volumes:
+      - /mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:/mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:rw
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8090/login || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: nstarx-intake-caddy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - nstarx_intake_caddy_data:/data
+      - nstarx_intake_caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  nstarx_intake_caddy_data:
+  nstarx_intake_caddy_config:
