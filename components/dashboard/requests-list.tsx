@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronUp,
@@ -124,25 +125,6 @@ function priorityClasses(priority: string) {
   }
 }
 
-function statusClasses(status: RequestStatus) {
-  switch (status) {
-    case "Submitted":
-      return "bg-slate-100 text-slate-700 border-slate-200";
-    case "Not Started":
-      return "bg-indigo-100 text-indigo-700 border-indigo-200";
-    case "In Progress":
-      return "bg-sky-100 text-sky-700 border-sky-200";
-    case "In Review":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "Completed":
-      return "bg-green-100 text-green-700 border-green-200";
-    case "Rejected":
-      return "bg-red-100 text-red-700 border-red-200";
-    default:
-      return "bg-gray-100 text-gray-700 border-gray-200";
-  }
-}
-
 function sortRequests(
   rows: AdminRequest[],
   key: SortKey,
@@ -230,6 +212,7 @@ function HeaderCell({
 }
 
 export function RequestsList({ initialRequests }: RequestsListProps) {
+  const router = useRouter();
   const [requests, setRequests] = React.useState(initialRequests);
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
@@ -449,23 +432,32 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             <tbody className="divide-y divide-brand-zebra">
               {pageRows.map((request) => {
                 const due = request.dueDate ?? request.desiredDeadline;
+                const detailUrl = `/dashboard/requests/${request.id}`;
+                const openDetail = () => router.push(detailUrl);
+                const handleRowKey = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openDetail();
+                  }
+                };
                 return (
                   <tr
                     key={request.id}
-                    className="bg-white hover:bg-brand-zebra/60 transition-colors cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={openDetail}
+                    onKeyDown={handleRowKey}
+                    className="bg-white hover:bg-brand-zebra/60 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-purple"
                   >
                     <td className="px-3 py-3">
-                      <Link
-                        href={`/dashboard/requests/${request.id}`}
-                        className="block font-medium text-brand-ink hover:text-brand-purple"
-                      >
+                      <div className="block font-medium text-brand-ink hover:text-brand-purple">
                         <div className="truncate max-w-[260px]" title={request.projectTitle}>
                           {request.projectTitle}
                         </div>
                         <div className="text-xs text-brand-ink/50 mt-0.5">
                           {request.publicReference}
                         </div>
-                      </Link>
+                      </div>
                     </td>
                     <td className="px-3 py-3 font-medium text-brand-ink">
                       {request.fullName}
@@ -478,10 +470,8 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                         {request.priority}
                       </Badge>
                     </td>
-                    <td className="px-3 py-3">
-                      <Badge className={statusClasses(request.status)}>
-                        {request.status}
-                      </Badge>
+                    <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
+                      {request.status}
                     </td>
                     <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
                       {request.assignee || "—"}
@@ -536,9 +526,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Status</div>
-                    <Badge className={statusClasses(request.status)}>
-                      {request.status}
-                    </Badge>
+                    <div className="text-brand-ink/80">{request.status}</div>
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Assignee</div>
