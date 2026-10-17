@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requests, attachments, activityLog } from "@/lib/schema";
+import { requests, attachments, activityLog, comments } from "@/lib/schema";
 import type { RequestStatus } from "@/lib/status-workflow";
 import { requireCurrentAdmin } from "@/lib/session";
 import { validateStatusTransition, VALID_STATUSES } from "@/lib/status-workflow";
+import { sendCommentNotification } from "@/lib/email";
 
 const priorities = ["Low", "Medium", "High", "Urgent"] as const;
+const assignees = ["Shantanu", "Sujay"] as const;
 
 const statusBodySchema = z.object({
   status: z.enum(VALID_STATUSES),
@@ -17,12 +19,20 @@ const priorityBodySchema = z.object({
   priority: z.enum(priorities),
 });
 
+const assigneeBodySchema = z.object({
+  assignee: z.enum(assignees),
+});
+
 const dueDateBodySchema = z.object({
   dueDate: z.string().date().nullable(),
 });
 
 const notesBodySchema = z.object({
   notes: z.string().max(10000),
+});
+
+const commentBodySchema = z.object({
+  content: z.string().min(1).max(5000),
 });
 
 function badRequest(message: string, status = 400) {
@@ -42,6 +52,7 @@ async function getRequestAndAdmin(requestId: string) {
 async function appendActivity(
   requestId: number,
   actorEmail: string,
+  actorName: string,
   field: string,
   oldValue: string | null | undefined,
   newValue: string | null | undefined
@@ -49,10 +60,17 @@ async function appendActivity(
   await db.insert(activityLog).values({
     requestId,
     actorEmail,
+    actorName,
     field,
     oldValue: oldValue ?? null,
     newValue: newValue ?? null,
   });
+}
+
+async function notifyAssignee(request: { id: number; projectTitle: string; publicReference: string; assignee: string }, oldAssignee: string | null, admin: { name: string; email: string }) {
+  if (request.assignee === oldAssignee) return;
+  const { sendAssigneeNotification } = await import("@/lib/email");
+  await sendAssigneeNotification(request, admin.name);
 }
 
 /**
@@ -87,6 +105,7 @@ export async function GET_ONE(
       fullName: requestRow.fullName,
       email: requestRow.email,
       projectType: requestRow.projectType,
+      brandingDirection: requestRow.brandingDirection,
       projectTitle: requestRow.projectTitle,
       description: requestRow.description,
       desiredDeadline: requestRow.desiredDeadline,
@@ -94,6 +113,8 @@ export async function GET_ONE(
       status: requestRow.status,
       dueDate: requestRow.dueDate,
       internalNotes: requestRow.internalNotes,
+      assignee: requestRow.assignee,
+      driveUrl: requestRow.driveUrl,
       submittedAt: requestRow.submittedAt,
     },
     attachments: attachmentRows.map((a) => ({
@@ -155,6 +176,7 @@ export async function GET() {
       fullName: r.fullName,
       email: r.email,
       projectType: r.projectType,
+      brandingDirection: r.brandingDirection,
       projectTitle: r.projectTitle,
       description: r.description,
       desiredDeadline: r.desiredDeadline,
@@ -162,6 +184,8 @@ export async function GET() {
       status: r.status,
       dueDate: r.dueDate,
       internalNotes: r.internalNotes,
+      assignee: r.assignee,
+      driveUrl: r.driveUrl,
       submittedAt: r.submittedAt,
     })),
   });
@@ -202,6 +226,7 @@ export async function PATCH_STATUS(request: NextRequest, { params }: { params: {
     await appendActivity(
       requestRow.id,
       admin.email,
+      admin.name,
       "status",
       current,
       next
@@ -241,7 +266,7 @@ export async function PATCH_PRIORITY(
       .set({ priority: next })
       .where(eq(requests.id, requestRow.id));
 
-    await appendActivity(requestRow.id, admin.email, "priority", current, next);
+    await appendActivity(requestRow.id, admin.email, admin.name, "priority", current, next);
   }
 
   return NextResponse.json({ ok: true, id: requestRow.id, priority: next });
@@ -287,6 +312,7 @@ export async function PATCH_DUE_DATE(
     await appendActivity(
       requestRow.id,
       admin.email,
+      admin.name,
       "due_date",
       currentString,
       nextString
@@ -330,6 +356,7 @@ export async function PATCH_NOTES(
     await appendActivity(
       requestRow.id,
       admin.email,
+      admin.name,
       "internal_notes",
       current || null,
       next || null
@@ -368,11 +395,161 @@ export async function GET_ACTIVITY(
     entries: rows.map((r) => ({
       id: r.id,
       actorEmail: r.actorEmail,
+      actorName: r.actorName,
       field: r.field,
       oldValue: r.oldValue,
       newValue: r.newValue,
       createdAt: r.createdAt,
     })),
+  });
+}
+
+/**
+ * PATCH /api/admin/requests/[id]/assignee
+ */
+export async function PATCH_ASSIGNEE(request: NextRequest, { params }: { params: { id: string } }) {
+  const { admin, requestRow } = await getRequestAndAdmin(params.id);
+  if (!requestRow) return badRequest("Request not found.", 404);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest("Invalid JSON body.");
+  }
+
+  const parsed = assigneeBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => i.message).join(" "));
+  }
+
+  const current = requestRow.assignee;
+  const next = parsed.data.assignee;
+  if (current !== next) {
+    await db
+      .update(requests)
+      .set({ assignee: next })
+      .where(eq(requests.id, requestRow.id));
+
+    await appendActivity(requestRow.id, admin.email, admin.name, "assignee", current, next);
+    await notifyAssignee({ id: requestRow.id, projectTitle: requestRow.projectTitle, publicReference: requestRow.publicReference, assignee: next }, current, admin);
+  }
+
+  return NextResponse.json({ ok: true, id: requestRow.id, assignee: next });
+}
+
+/**
+ * PATCH /api/admin/requests/[id]/drive-url
+ */
+export async function PATCH_DRIVE_URL(request: NextRequest, { params }: { params: { id: string } }) {
+  const { admin, requestRow } = await getRequestAndAdmin(params.id);
+  if (!requestRow) return badRequest("Request not found.", 404);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest("Invalid JSON body.");
+  }
+
+  const urlSchema = z.object({
+    driveUrl: z.string().max(1000).nullable(),
+  });
+  const parsed = urlSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => i.message).join(" "));
+  }
+
+  const current = requestRow.driveUrl ?? null;
+  const next = parsed.data.driveUrl;
+  if (current !== next) {
+    await db
+      .update(requests)
+      .set({ driveUrl: next })
+      .where(eq(requests.id, requestRow.id));
+
+    await appendActivity(requestRow.id, admin.email, admin.name, "driveUrl", current, next);
+  }
+
+  return NextResponse.json({ ok: true, id: requestRow.id, driveUrl: next });
+}
+
+/**
+ * GET /api/admin/requests/[id]/comments
+ */
+export async function GET_COMMENTS(_request: NextRequest, { params }: { params: { id: string } }) {
+  await requireCurrentAdmin();
+  const id = Number(params.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return badRequest("Invalid request ID.", 400);
+  }
+
+  const requestRow = await db.query.requests.findFirst({
+    where: eq(requests.id, id),
+    columns: { id: true },
+  });
+  if (!requestRow) return badRequest("Request not found.", 404);
+
+  const rows = await db.query.comments.findMany({
+    where: eq(comments.requestId, id),
+    orderBy: [desc(comments.createdAt), desc(comments.id)],
+  });
+
+  return NextResponse.json({
+    id,
+    comments: rows.map((r) => ({
+      id: r.id,
+      actorName: r.authorName,
+      actorEmail: r.authorEmail,
+      content: r.content,
+      createdAt: r.createdAt,
+    })),
+  });
+}
+
+/**
+ * POST /api/admin/requests/[id]/comments
+ */
+export async function POST_COMMENT(request: NextRequest, { params }: { params: { id: string } }) {
+  const { admin, requestRow } = await getRequestAndAdmin(params.id);
+  if (!requestRow) return badRequest("Request not found.", 404);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest("Invalid JSON body.");
+  }
+
+  const parsed = commentBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => i.message).join(" "));
+  }
+
+  const [comment] = await db
+    .insert(comments)
+    .values({
+      requestId: requestRow.id,
+      authorEmail: admin.email,
+      authorName: admin.name,
+      content: parsed.data.content,
+    })
+    .returning();
+
+  await sendCommentNotification(
+    { id: requestRow.id, projectTitle: requestRow.projectTitle, publicReference: requestRow.publicReference },
+    { actorName: admin.name, actorEmail: admin.email, content: parsed.data.content }
+  );
+
+  return NextResponse.json({
+    ok: true,
+    comment: {
+      id: comment.id,
+      actorName: comment.authorName,
+      actorEmail: comment.authorEmail,
+      content: comment.content,
+      createdAt: comment.createdAt,
+    },
   });
 }
 

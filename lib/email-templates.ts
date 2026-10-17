@@ -25,7 +25,7 @@ export type AttachmentRow = {
   sizeBytes: number;
 };
 
-function formatDate(date: Date | string | null | undefined): string {
+export function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "Not specified";
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleDateString("en-US", {
@@ -35,7 +35,7 @@ function formatDate(date: Date | string | null | undefined): string {
   });
 }
 
-function escapeHtml(value: unknown): string {
+export function escapeHtml(value: unknown): string {
   const text = value == null ? "" : String(value);
   return text
     .replace(/&/g, "&amp;")
@@ -45,7 +45,7 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, "&#039;");
 }
 
-function brandWrapper(title: string, body: string): string {
+export function brandWrapper(title: string, body: string): string {
   return `\u003c!DOCTYPE html\u003e
 \u003chtml lang="en"\u003e
 \u003chead\u003e
@@ -82,7 +82,7 @@ function brandWrapper(title: string, body: string): string {
 \u003c/html\u003e`;
 }
 
-function ctaButton(href: string, label: string): string {
+export function ctaButton(href: string, label: string): string {
   return `\u003cdiv style="text-align:center;margin:24px 0;"\u003e
   \u003ca href="${escapeHtml(href)}" style="display:inline-block;background-color:#6464B4;color:#FFFFFF;font-family:Montserrat,Impact,sans-serif;font-weight:700;font-size:14px;line-height:1;padding:14px 28px;border-radius:6px;text-decoration:none;"\u003e${escapeHtml(label)}\u003c/a\u003e
 \u003c/div\u003e`;
@@ -176,7 +176,7 @@ export function renderSubmitterConfirmationEmail(
 
   const htmlBody = `
     \u003cp style="margin:0 0 16px 0;font-size:16px;line-height:1.5;"\u003eHi ${escapeHtml(request.fullName)},\u003c/p\u003e
-    \u003cp style="margin:0 0 16px 0;font-size:16px;line-height:1.5;"\u003eThank you for submitting your request. Shantanu will review the requirements with Sujay and plan it in accordance with other priority items.\u003c/p\u003e
+    \u003cp style="margin:0 0 16px 0;font-size:16px;line-height:1.5;"\u003eWelcome! Thank you for submitting your project request. Once submitted, Shantanu will review it with Sujay and plan it alongside other priority work. You&apos;ll receive an email confirmation with your reference number.\u003c/p\u003e
     \u003cp style="margin:0 0 24px 0;font-size:14px;line-height:1.5;color:#6464B4;"\u003e\u003cstrong\u003eYour reference number:\u003c/strong\u003e ${escapeHtml(request.publicReference)}\u003c/p\u003e
     ${ctaButton(statusUrl, "Track Request Status")}
     \u003ch2 style="margin:24px 0 12px 0;font-family:Montserrat,Impact,sans-serif;font-weight:900;font-size:18px;color:#333F50;"\u003eSubmission Summary\u003c/h2\u003e
@@ -193,7 +193,7 @@ export function renderSubmitterConfirmationEmail(
 
   const text = `Hi ${request.fullName},
 
-Thank you for submitting your request. Shantanu will review the requirements with Sujay and plan it in accordance with other priority items.
+Thank you for submitting your project request. Once submitted, Shantanu will review it with Sujay and plan it alongside other priority work. You'll receive an email confirmation with your reference number.
 
 Your reference number: ${request.publicReference}
 

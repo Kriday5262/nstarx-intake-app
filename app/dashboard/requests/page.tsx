@@ -6,7 +6,7 @@ import { desc } from "drizzle-orm";
 import { RequestsList, type AdminRequest } from "@/components/dashboard/requests-list";
 
 export const metadata: Metadata = {
-  title: "Requests · NStarX Intake",
+  title: "Requests · NStarX Project Intake System",
   description: "Manage NStarX intake requests.",
 };
 
@@ -28,6 +28,7 @@ export default async function RequestsPage() {
     desiredDeadline: r.desiredDeadline ? String(r.desiredDeadline).slice(0, 10) : null,
     priority: r.priority,
     status: r.status as AdminRequest["status"],
+    assignee: r.assignee,
     dueDate: r.dueDate,
     internalNotes: r.internalNotes,
     submittedAt: r.submittedAt.toISOString(),

@@ -37,6 +37,10 @@ export function fieldLabel(field: string): string {
       return "Due date";
     case "internal_notes":
       return "Internal notes";
+    case "assignee":
+      return "Assignee";
+    case "driveUrl":
+      return "Drive link";
     default:
       return field.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
   }

@@ -36,6 +36,8 @@ export default function LoginForm({ from }: { from: string }) {
           throw new Error("Invalid email or password.");
         }
 
+        await response.json();
+
         router.push(from.startsWith("/") ? from : "/dashboard");
       } catch {
         setError("Invalid email or password.");

@@ -8,7 +8,7 @@ import { RequestDetail } from "@/components/dashboard/request-detail";
 import type { RequestStatus } from "@/lib/status-workflow";
 
 export const metadata: Metadata = {
-  title: "Request Detail · NStarX Intake",
+  title: "Request Detail · NStarX Project Intake System",
   description: "View and manage an intake request.",
 };
 
@@ -45,6 +45,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
     fullName: requestRow.fullName,
     email: requestRow.email,
     projectType: requestRow.projectType,
+    brandingDirection: requestRow.brandingDirection,
     projectTitle: requestRow.projectTitle,
     description: requestRow.description,
     desiredDeadline: requestRow.desiredDeadline
@@ -52,9 +53,11 @@ export default async function RequestDetailPage({ params }: PageProps) {
       : null,
     priority: requestRow.priority,
     status: requestRow.status as RequestStatus,
+    assignee: requestRow.assignee,
     dueDate: requestRow.dueDate
       ? String(requestRow.dueDate).slice(0, 10)
       : null,
+    driveUrl: requestRow.driveUrl,
     internalNotes: requestRow.internalNotes ?? "",
     submittedAt: requestRow.submittedAt.toISOString(),
   };

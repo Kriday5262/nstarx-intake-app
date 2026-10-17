@@ -76,8 +76,8 @@ const pool = new Pool({
 });
 
 const admins = [
-  { email: 'shantanu.chaturvedi@nstarxinc.com', password: process.env.ADMIN_SHANTANU_PASSWORD },
-  { email: 'sujay@nstarxinc.com', password: process.env.ADMIN_SUJAY_PASSWORD },
+  { email: 'shantanu.chaturvedi@nstarxinc.com', name: 'Shantanu', password: process.env.ADMIN_SHANTANU_PASSWORD },
+  { email: 'shantanu@kamkazi.com', name: 'Sujay', password: process.env.ADMIN_SUJAY_PASSWORD },
 ];
 
 async function main() {
@@ -89,8 +89,8 @@ async function main() {
     const ok = verifyPassword(admin.password, hash);
     console.log(`hash ok for ${admin.email}:`, ok, hash.slice(0, 40) + '...');
     await pool.query(
-      'INSERT INTO admin_users (email, password_hash) VALUES ($1, $2) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash',
-      [admin.email, hash]
+      'INSERT INTO admin_users (email, name, password_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, name = EXCLUDED.name',
+      [admin.email, admin.name, hash]
     );
     console.log(`Seeded admin ${admin.email}`);
   }

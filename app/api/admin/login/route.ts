@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(UNAUTHORIZED_RESPONSE, { status: 401 });
   }
 
-  await createSession(user.id, user.email);
+  await createSession(user.id, user.email, user.name ?? "");
 
-  return NextResponse.json({ ok: true }, { status: 200 });
+  return NextResponse.json({ ok: true, name: user.name ?? "" }, { status: 200 });
 }

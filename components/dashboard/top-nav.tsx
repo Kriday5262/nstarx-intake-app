@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Menu, X, ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
@@ -13,11 +14,9 @@ interface DashboardAdmin {
 
 interface TopNavProps {
   admin: DashboardAdmin;
-  isSidebarOpen: boolean;
-  onMenuToggle: () => void;
 }
 
-export function TopNav({ admin, isSidebarOpen, onMenuToggle }: TopNavProps) {
+export function TopNav({ admin }: TopNavProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -61,37 +60,20 @@ export function TopNav({ admin, isSidebarOpen, onMenuToggle }: TopNavProps) {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-brand-zebra">
       <div className="h-14 md:h-16 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3 md:gap-4">
-          <button
-            type="button"
-            onClick={onMenuToggle}
-            className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-md text-brand-ink hover:bg-brand-zebra focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
-            aria-label={isSidebarOpen ? "Close navigation" : "Open navigation"}
-            aria-expanded={isSidebarOpen}
-            aria-controls="dashboard-sidebar"
-          >
-            {isSidebarOpen ? (
-              <X className="h-5 w-5" aria-hidden="true" />
-            ) : (
-              <Menu className="h-5 w-5" aria-hidden="true" />
-            )}
-          </button>
-
-          <div className="flex items-center gap-2 md:gap-3">
-            <Image
-              src="/nstarx-logo-horizontal.png"
-              alt="NStarX"
-              width={140}
-              height={36}
-              priority
-              className="h-7 md:h-8 w-auto"
-            />
-            <span className="hidden sm:inline-block h-5 w-px bg-brand-ink/20" />
-            <span className="font-heading font-black text-brand-ink text-base md:text-lg">
-              NStarX Intake Form
-            </span>
-          </div>
-        </div>
+        <Link href="/dashboard/requests" className="flex items-center gap-2 md:gap-3">
+          <Image
+            src="/nstarx-logo-horizontal.png"
+            alt="NStarX"
+            width={140}
+            height={36}
+            priority
+            className="h-7 md:h-8 w-auto"
+          />
+          <span className="hidden sm:inline-block h-5 w-px bg-brand-ink/20" />
+          <span className="font-heading font-black text-brand-ink text-base md:text-lg">
+            NStarX Project Intake System
+          </span>
+        </Link>
 
         <div className="relative" ref={dropdownRef}>
           <button
@@ -121,6 +103,15 @@ export function TopNav({ admin, isSidebarOpen, onMenuToggle }: TopNavProps) {
               <p className="text-sm font-semibold text-brand-ink truncate">{admin.name}</p>
               <p className="text-xs text-brand-ink/70 truncate">{admin.email}</p>
             </div>
+            <Link
+              href="/dashboard/settings"
+              role="menuitem"
+              onClick={() => setIsDropdownOpen(false)}
+              className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-zebra focus:bg-brand-zebra focus:outline-none"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
             <button
               type="button"
               role="menuitem"

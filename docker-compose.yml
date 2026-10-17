@@ -31,6 +31,9 @@ services:
       # Postgres is on the Docker host, exposed on 127.0.0.1:5434.
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: "5434"
+      # Assignee notification addresses (override any missing .env entries).
+      ASSIGNEE_SHANTANU_EMAIL: shantanu.chaturvedi@nstarxinc.com
+      ASSIGNEE_SUJAY_EMAIL: shantanu@kamkazi.com
     volumes:
       - /mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:/mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:rw
     healthcheck:

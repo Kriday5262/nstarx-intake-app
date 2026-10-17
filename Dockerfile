@@ -27,6 +27,7 @@ WORKDIR /app
 # server from there and keep the container small.
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
 
 # Preserve drizzle migrations and the migration runner so the entrypoint can
 # apply them at startup.

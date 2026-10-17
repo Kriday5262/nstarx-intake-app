@@ -48,7 +48,7 @@ function Calendar({
         [DayFlag.disabled]: "text-muted-foreground opacity-50",
         [DayFlag.today]: "bg-accent text-accent-foreground",
         [SelectionState.selected]:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+          "bg-brand-purple text-white hover:bg-brand-purple hover:text-white focus:bg-brand-purple focus:text-white",
         [UI.WeekNumber]: "text-muted-foreground opacity-50",
         ...classNames,
       }}

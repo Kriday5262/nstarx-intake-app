@@ -1,9 +1,20 @@
-#!/usr/bin/env node
+/** @format */
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const FormData = require("form-data");
 const { Pool } = require("pg");
+
+const envPath = path.join(__dirname, "..", ".env");
+if (fs.existsSync(envPath)) {
+  const text = fs.readFileSync(envPath, "utf8");
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (m && process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2];
+    }
+  }
+}
 
 const HOST = "http://127.0.0.1:8090";
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "/mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads";
@@ -43,9 +54,11 @@ async function main() {
   form.append("fullName", "Deployed App Test");
   form.append("email", "deployed@test.com");
   form.append("projectType", "Website Work");
+  form.append("brandingDirection", "NStarX");
   form.append("projectTitle", "Deployed intake test");
   form.append("description", "This is a test submission sent to the deployed Dockerized NStarX Intake app. It has enough characters to pass validation.");
   form.append("priority", "Medium");
+  form.append("driveUrl", "https://drive.google.com/drive/folders/deploy-test");
   form.append("fileCount", "1");
   form.append("fileName_0", "deploy-test.txt");
   form.append("file_0", fs.createReadStream(tmpFile), { filename: "deploy-test.txt", contentType: "text/plain" });
@@ -79,6 +92,9 @@ async function main() {
   if (dbResult.rows.length === 0) throw new Error("Request row not found in database");
   const row = dbResult.rows[0];
 
+  if (row.branding_direction !== "NStarX") throw new Error("Wrong branding_direction");
+  if (row.assignee !== "Shantanu") throw new Error("Wrong assignee");
+  if (row.drive_url !== "https://drive.google.com/drive/folders/deploy-test") throw new Error("Wrong drive_url");
   if (!row.stored_path || !fs.existsSync(row.stored_path)) {
     throw new Error(`Uploaded file missing at ${row.stored_path}`);
   }

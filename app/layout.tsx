@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NStarX Intake",
+  title: "NStarX Project Intake System",
   description: "Submit a request to Shantanu's queue.",
 };
 

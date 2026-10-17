@@ -26,10 +26,15 @@ export const LINEAR_FLOW: RequestStatus[] = [
   "Completed",
 ];
 
-const TERMINAL_STATUSES = new Set<RequestStatus>(["Completed"]);
+const TERMINAL_STATUSES = new Set<RequestStatus>([]);
 
-export function isTerminalStatus(status: RequestStatus): boolean {
-  return TERMINAL_STATUSES.has(status);
+export function isTerminalStatus(_status: RequestStatus): boolean {
+  return false;
+}
+
+/** Return true if a status change is allowed. Completed and Rejected can always be reopened. */
+export function canChangeStatus(current: RequestStatus, next: RequestStatus): boolean {
+  return validateStatusTransition(current, next).ok;
 }
 
 /**
@@ -57,14 +62,12 @@ export const validateStatusTransition = (
     return { ok: false, error: `"${next}" is not a valid status value.` };
   }
 
-  if (isTerminalStatus(current)) {
-    return {
-      ok: false,
-      error: `Cannot change status from terminal state "${current}".`,
-    };
+  if (current === next) {
+    return { ok: true };
   }
 
-  if (current === next) {
+  // Completed and Rejected can be reopened to any open state
+  if (current === "Completed" || current === "Rejected") {
     return { ok: true };
   }
 

@@ -31,9 +31,9 @@ function cookieOptions(maxAge: number) {
   };
 }
 
-export async function createSession(adminId: number, _email: string) {
+export async function createSession(adminId: number, _email: string, name: string) {
   const ttlSeconds = Number(process.env.SESSION_TTL_SECONDS ?? DEFAULT_TTL_SECONDS);
-  const token = signSession({ sub: String(adminId) }, ttlSeconds);
+  const token = signSession({ sub: String(adminId), name }, ttlSeconds);
   const signature = getTokenSignature(token);
 
   if (signature) {
@@ -79,6 +79,7 @@ export async function clearSession() {
 
 export type AdminSession = {
   adminId: number;
+  name: string;
 };
 
 export async function getSession(): Promise<AdminSession | null> {
@@ -105,7 +106,7 @@ export async function getSession(): Promise<AdminSession | null> {
   const adminId = Number(payload.sub);
   if (!Number.isFinite(adminId) || adminId <= 0) return null;
 
-  return { adminId };
+  return { adminId, name: payload.name ?? "" };
 }
 
 export async function requireSession(): Promise<AdminSession> {
@@ -116,14 +117,7 @@ export async function requireSession(): Promise<AdminSession> {
   return session;
 }
 
-export type CurrentAdmin = AdminSession & { email: string; name: string };
-
-function emailToName(email: string): string {
-  const local = email.split("@")[0] ?? email;
-  return local
-    .replace(/[._-]+/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+export type CurrentAdmin = AdminSession & { email: string };
 
 export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
   const session = await getSession();
@@ -131,7 +125,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
 
   const user = await db.query.adminUsers.findFirst({
     where: eq(adminUsers.id, session.adminId),
-    columns: { email: true },
+    columns: { email: true, name: true },
   });
 
   if (!user) return null;
@@ -139,7 +133,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
   return {
     adminId: session.adminId,
     email: user.email,
-    name: emailToName(user.email),
+    name: user.name || session.name || emailToName(user.email),
   };
 }
 
@@ -149,4 +143,11 @@ export async function requireCurrentAdmin(): Promise<CurrentAdmin> {
     redirect("/login");
   }
   return admin;
+}
+
+function emailToName(email: string): string {
+  const local = email.split("@")[0] ?? email;
+  return local
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }

@@ -15,7 +15,7 @@ export default function Header() {
           />
           <span className="hidden sm:inline-block h-6 w-px bg-brand-ink/20"></span>
           <span className="font-heading font-black text-brand-ink text-lg md:text-xl">
-            Intake
+            Project Intake Form
           </span>
         </div>
       </div>

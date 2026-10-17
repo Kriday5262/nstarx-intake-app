@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Save, CheckCircle2, AlertCircle, Download, FileText, Paperclip, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, AlertCircle, Download, FileText, Paperclip, Calendar as CalendarIcon, MessageSquare, ExternalLink, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { formatDate, formatDateTime, formatFileSize, fieldLabel, relativeTime } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,14 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   VALID_STATUSES,
   type RequestStatus,
@@ -36,9 +45,18 @@ interface Attachment {
 interface ActivityEntry {
   id: number;
   actorEmail: string;
+  actorName: string | null;
   field: string;
   oldValue: string | null;
   newValue: string | null;
+  createdAt: string;
+}
+
+interface Comment {
+  id: number;
+  actorName: string;
+  actorEmail: string;
+  content: string;
   createdAt: string;
 }
 
@@ -48,6 +66,7 @@ interface AdminRequest {
   fullName: string;
   email: string;
   projectType: string;
+  brandingDirection: string;
   projectTitle: string;
   description: string;
   desiredDeadline: string | null;
@@ -55,6 +74,8 @@ interface AdminRequest {
   status: RequestStatus;
   dueDate: string | null;
   internalNotes: string;
+  assignee: string;
+  driveUrl: string | null;
   submittedAt: string;
 }
 
@@ -126,12 +147,32 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
   const [notesSaving, setNotesSaving] = React.useState(false);
   const [notesMessage, setNotesMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const [assignee, setAssignee] = React.useState(request.assignee);
+  const [assigneeSaving, setAssigneeSaving] = React.useState(false);
+  const [assigneeMessage, setAssigneeMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [driveUrl, setDriveUrl] = React.useState(request.driveUrl ?? "");
+  const [driveUrlSaving, setDriveUrlSaving] = React.useState(false);
+  const [driveUrlMessage, setDriveUrlMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [commentDraft, setCommentDraft] = React.useState("");
+  const [commentSaving, setCommentSaving] = React.useState(false);
+  const [commentMessage, setCommentMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [comments, setComments] = React.useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = React.useState(true);
+
   const [activity, setActivity] = React.useState<ActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = React.useState(true);
   const [activityError, setActivityError] = React.useState<string | null>(null);
 
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleteBusy, setDeleteBusy] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const router = useRouter();
+
   React.useEffect(() => {
     loadActivity();
+    loadComments();
   }, [requestData.id]);
 
   async function loadActivity() {
@@ -149,6 +190,95 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
       setActivityError(err instanceof Error ? err.message : "Network error loading activity log.");
     } finally {
       setActivityLoading(false);
+    }
+  }
+
+  async function loadComments() {
+    setCommentsLoading(true);
+    try {
+      const response = await fetch(`/api/admin/requests/${requestData.id}/comments`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return;
+      setComments((data.comments || []).slice().reverse());
+    } finally {
+      setCommentsLoading(false);
+    }
+  }
+
+  async function postComment() {
+    if (!commentDraft.trim()) return;
+    setCommentSaving(true);
+    setCommentMessage(null);
+    try {
+      const response = await fetch(`/api/admin/requests/${requestData.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentDraft.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setCommentMessage({ type: "error", text: data.error || `Save failed (${response.status}).` });
+        return;
+      }
+      setCommentDraft("");
+      setCommentMessage({ type: "success", text: "Comment added." });
+      await loadComments();
+      setTimeout(() => setCommentMessage(null), 2000);
+    } catch (err) {
+      setCommentMessage({ type: "error", text: err instanceof Error ? err.message : "Network error." });
+    } finally {
+      setCommentSaving(false);
+    }
+  }
+
+  async function updateAssignee() {
+    setAssigneeMessage(null);
+    setAssigneeSaving(true);
+    try {
+      const response = await fetch(`/api/admin/requests/${requestData.id}/assignee`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignee }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setAssigneeMessage({ type: "error", text: data.error || `Update failed (${response.status}).` });
+        return;
+      }
+      setRequestData((prev) => ({ ...prev, assignee }));
+      setAssigneeMessage({ type: "success", text: "Assignee updated." });
+      await loadActivity();
+      setTimeout(() => setAssigneeMessage(null), 2000);
+    } catch (err) {
+      setAssigneeMessage({ type: "error", text: err instanceof Error ? err.message : "Network error." });
+    } finally {
+      setAssigneeSaving(false);
+    }
+  }
+
+  async function updateDriveUrl() {
+    setDriveUrlMessage(null);
+    setDriveUrlSaving(true);
+    const next = driveUrl.trim() || null;
+    try {
+      const response = await fetch(`/api/admin/requests/${requestData.id}/drive-url`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driveUrl: next }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setDriveUrlMessage({ type: "error", text: data.error || `Update failed (${response.status}).` });
+        return;
+      }
+      setRequestData((prev) => ({ ...prev, driveUrl: next }));
+      setDriveUrlMessage({ type: "success", text: "Drive link updated." });
+      await loadActivity();
+      setTimeout(() => setDriveUrlMessage(null), 2000);
+    } catch (err) {
+      setDriveUrlMessage({ type: "error", text: err instanceof Error ? err.message : "Network error." });
+    } finally {
+      setDriveUrlSaving(false);
     }
   }
 
@@ -182,6 +312,26 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
       setStatusError(err instanceof Error ? err.message : "Network error.");
     } finally {
       setBusyStatus(false);
+    }
+  }
+
+  async function deleteRequest() {
+    setDeleteError(null);
+    setDeleteBusy(true);
+    try {
+      const response = await fetch(`/api/admin/requests/${requestData.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setDeleteError(data.error || `Delete failed (${response.status}).`);
+        return;
+      }
+      router.push("/dashboard/requests");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -262,7 +412,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
     }
   }
 
-  const isTerminal = requestData.status === "Completed";
+  const isTerminal = false;
 
   return (
     <div className="space-y-6">
@@ -283,6 +433,15 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDeleteOpen(true)}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Delete
+          </Button>
           <span
             className={cn(
               "inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium",
@@ -311,10 +470,32 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               <DetailItem label="Requester" value={requestData.fullName} />
               <DetailItem label="Email" value={requestData.email} />
               <DetailItem label="Project type" value={requestData.projectType} />
+              {requestData.brandingDirection ? (
+                <DetailItem label="Branding direction" value={requestData.brandingDirection} />
+              ) : null}
+              {requestData.driveUrl ? (
+                <div className="sm:col-span-2">
+                  <DetailItem
+                    label="Google Drive link"
+                    value={
+                      <a
+                        href={requestData.driveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-brand-purple hover:underline"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        {requestData.driveUrl}
+                      </a>
+                    }
+                  />
+                </div>
+              ) : null}
               <DetailItem
                 label="Desired deadline"
                 value={formatDate(requestData.desiredDeadline)}
               />
+              <DetailItem label="Assignee" value={requestData.assignee} />
               <DetailItem label="Submitted" value={formatDateTime(requestData.submittedAt)} />
             </dl>
             <div className="mt-5">
@@ -364,6 +545,50 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
             )}
           </section>
 
+          {/* Comments */}
+          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5 space-y-4">
+            <h2 className="font-heading text-lg text-brand-ink inline-flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Comments
+            </h2>
+            <div className="space-y-4">
+              {commentsLoading ? (
+                <p className="text-sm text-brand-ink/50">Loading comments…</p>
+              ) : comments.length === 0 ? (
+                <p className="text-sm text-brand-ink/60">No comments yet.</p>
+              ) : (
+                comments.map((c) => (
+                  <div key={c.id} className="rounded-md bg-brand-canvas p-3 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-brand-ink">{c.actorName || c.actorEmail}</span>
+                      <span className="text-xs text-brand-ink/50">{relativeTime(c.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-brand-ink/90 whitespace-pre-wrap">{c.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="space-y-2 pt-2 border-t border-brand-zebra">
+              <Textarea
+                value={commentDraft}
+                onChange={(e) => setCommentDraft(e.target.value)}
+                placeholder="Add a comment…"
+                rows={3}
+                className="bg-white border-brand-zebra focus-visible:ring-brand-purple resize-none"
+              />
+              <Button
+                onClick={postComment}
+                disabled={commentSaving || !commentDraft.trim()}
+                className="w-full bg-brand-purple hover:bg-brand-purple-dark text-white"
+              >
+                {commentSaving ? "Posting…" : "Post Comment"}
+              </Button>
+              {commentMessage && (
+                <MessageBox type={commentMessage.type} text={commentMessage.text} />
+              )}
+            </div>
+          </section>
+
           <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-heading text-lg text-brand-ink">Activity log</h2>
@@ -385,7 +610,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                     <div className="mt-1 h-2 w-2 rounded-full bg-brand-purple shrink-0" />
                     <div className="flex-1">
                       <p className="text-brand-ink">
-                        <span className="font-medium">{entry.actorEmail}</span>{" "}
+                        <span className="font-bold">{entry.actorName || entry.actorEmail}</span>{" "}
                         changed{" "}
                         <span className="font-medium">{fieldLabel(entry.field)}</span>
                       </p>
@@ -414,19 +639,23 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               <Label htmlFor="status">Status</Label>
               <Select
                 value={selectedStatus}
-                disabled={isTerminal || busyStatus}
+                disabled={busyStatus}
                 onValueChange={(v) => {
                   setSelectedStatus(v as RequestStatus);
                   setStatusError(null);
                   setStatusSuccess(false);
                 }}
               >
-                <SelectTrigger id="status" className="bg-white border-brand-zebra focus:ring-brand-purple">
+                <SelectTrigger id="status" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-brand-zebra">
                   {VALID_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
+                    <SelectItem
+                      key={s}
+                      value={s}
+                      className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+                    >
                       {s}
                     </SelectItem>
                   ))}
@@ -434,7 +663,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               </Select>
               <Button
                 onClick={updateStatus}
-                disabled={isTerminal || busyStatus || selectedStatus === requestData.status}
+                disabled={busyStatus || selectedStatus === requestData.status}
                 className="w-full bg-brand-purple hover:bg-brand-purple-dark text-white"
               >
                 {busyStatus ? "Updating…" : "Update Status"}
@@ -461,12 +690,16 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 disabled={prioritySaving}
                 onValueChange={(v) => setSelectedPriority(v)}
               >
-                <SelectTrigger id="priority" className="bg-white border-brand-zebra focus:ring-brand-purple">
+                <SelectTrigger id="priority" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-brand-zebra">
                   {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
+                    <SelectItem
+                      key={p}
+                      value={p}
+                      className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+                    >
                       {p}
                     </SelectItem>
                   ))}
@@ -482,6 +715,71 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               </Button>
               {priorityMessage && (
                 <MessageBox type={priorityMessage.type} text={priorityMessage.text} />
+              )}
+            </div>
+
+            {/* Assignee */}
+            <div className="space-y-2">
+              <Label htmlFor="assignee">Assignee</Label>
+              <Select
+                value={assignee}
+                disabled={assigneeSaving}
+                onValueChange={(v) => setAssignee(v)}
+              >
+                <SelectTrigger id="assignee" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
+                  <SelectValue placeholder="Select assignee" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-brand-zebra">
+                  <SelectItem
+                    value="Shantanu"
+                    className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+                  >
+                    Shantanu
+                  </SelectItem>
+                  <SelectItem
+                    value="Sujay"
+                    className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+                  >
+                    Sujay
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={updateAssignee}
+                disabled={assigneeSaving || assignee === requestData.assignee}
+                variant="outline"
+                className="w-full border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple"
+              >
+                {assigneeSaving ? "Saving…" : "Update Assignee"}
+              </Button>
+              {assigneeMessage && (
+                <MessageBox type={assigneeMessage.type} text={assigneeMessage.text} />
+              )}
+            </div>
+
+            {/* Drive URL */}
+            <div className="space-y-2">
+              <Label htmlFor="drive-url">Google Drive link</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="drive-url"
+                  type="url"
+                  placeholder="https://drive.google.com/..."
+                  value={driveUrl}
+                  onChange={(e) => setDriveUrl(e.target.value)}
+                  className="bg-white border-brand-zebra focus-visible:ring-brand-purple"
+                />
+              </div>
+              <Button
+                onClick={updateDriveUrl}
+                disabled={driveUrlSaving || driveUrl.trim() === (requestData.driveUrl ?? "")}
+                variant="outline"
+                className="w-full border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple"
+              >
+                {driveUrlSaving ? "Saving…" : "Update Drive Link"}
+              </Button>
+              {driveUrlMessage && (
+                <MessageBox type={driveUrlMessage.type} text={driveUrlMessage.text} />
               )}
             </div>
 
@@ -548,6 +846,51 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </section>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) setDeleteError(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-brand-ink">Delete request?</DialogTitle>
+            <DialogDescription className="text-brand-ink/70">
+              This will permanently remove{" "}
+              <strong className="text-brand-ink">{requestData.projectTitle}</strong>{" "}
+              ({requestData.publicReference}) and all related attachments and
+              activity history. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              {deleteError}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteOpen(false);
+                setDeleteError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteRequest}
+              disabled={deleteBusy}
+            >
+              {deleteBusy ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

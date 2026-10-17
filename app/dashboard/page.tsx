@@ -2,8 +2,8 @@ import { Metadata } from "next";
 import { requireCurrentAdmin } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Dashboard · NStarX Intake",
-  description: "Manage NStarX Intake submissions.",
+  title: "Dashboard · NStarX Project Intake System",
+  description: "Manage NStarX Project Intake System submissions.",
 };
 
 export default async function DashboardPage() {
@@ -17,7 +17,7 @@ export default async function DashboardPage() {
       <p className="text-brand-ink/80 max-w-2xl">
         Signed in as {" "}
         <strong className="text-brand-ink">{admin.name} ({admin.email})</strong>.
-        Select a page from the sidebar to manage intake requests or settings.
+        Manage intake requests or settings from the top navigation.
       </p>
     </div>
   );

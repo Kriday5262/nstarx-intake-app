@@ -184,6 +184,35 @@ function run() {
         sentMultipleCalls[0].attachments[0].filename === "brand-brief.pdf",
     );
 
+    const sampleComment = {
+      actorName: "Shantanu",
+      actorEmail: "shantanu.chaturvedi@nstarxinc.com",
+      content:
+        "Let's finalize the color palette before moving this into production. I've left notes in the drive folder.",
+    };
+
+    await emailModule.sendCommentNotification(
+      { id: 1, projectTitle: sampleRequest.projectTitle, publicReference: sampleRequest.publicReference },
+      sampleComment
+    );
+    assert(
+      "sendCommentNotification sends to all admin recipients",
+      sentMultipleCalls.length === 2 &&
+        sentMultipleCalls[1].to.includes("admin-a@example.com") &&
+        sentMultipleCalls[1].to.includes("admin-b@example.com"),
+    );
+    assert(
+      "sendCommentNotification subject includes reference and title",
+      sentMultipleCalls[1].subject.includes("NSX-20261016-001") &&
+        sentMultipleCalls[1].subject.includes("Q4 Brand Refresh Deck"),
+    );
+    assert(
+      "sendCommentNotification body contains actor, preview, and dashboard link",
+      sentMultipleCalls[1].html.includes("Shantanu commented on") &&
+        sentMultipleCalls[1].html.includes("color palette") &&
+        sentMultipleCalls[1].html.includes('href="https://nstarx-intake.kamkazi.com/dashboard/requests/1"'),
+    );
+
     // Missing API key path.
     delete process.env.SENDGRID_API_KEY;
     emailModule.resetEmailClient();

@@ -1,107 +1,59 @@
-const { Pool } = require("pg");
-const { drizzle } = require("drizzle-orm/node-postgres");
+/**
+ * Database smoke test: insert a request, attachment, activity log entry,
+ * and comment, then read them back. Uses the real Drizzle schema so it
+ * stays in sync with code changes.
+ *
+ * Run with: node ./scripts/smoke.js
+ */
 
-const { sql } = require("drizzle-orm");
-const { pgTable, serial, integer, varchar, text, timestamp, date, uuid, pgEnum } = require("drizzle-orm/pg-core");
+const fs = require('fs');
+const path = require('path');
 
-const projectTypeEnum = pgEnum("project_type", [
-  "Deck Redesign",
-  "Document Branding",
-  "Video Creation",
-  "Website Work",
-  "Other",
-]);
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  const text = fs.readFileSync(envPath, 'utf8');
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (m && process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2];
+    }
+  }
+}
 
-const priorityEnum = pgEnum("priority", ["Low", "Medium", "High", "Urgent"]);
-const statusEnum = pgEnum("status", [
-  "Submitted",
-  "In Review",
-  "Planned",
-  "In Progress",
-  "Completed",
-  "Rejected",
-]);
-
-const requests = pgTable("requests", {
-  id: serial("id").primaryKey(),
-  publicReference: varchar("public_reference", { length: 32 }).notNull().unique(),
-  fullName: varchar("full_name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull(),
-  projectType: projectTypeEnum("project_type").notNull(),
-  projectTitle: varchar("project_title", { length: 500 }).notNull(),
-  description: text("description").notNull(),
-  desiredDeadline: date("desired_deadline"),
-  priority: priorityEnum("priority").default("Medium").notNull(),
-  status: statusEnum("status").default("Submitted").notNull(),
-  dueDate: date("due_date"),
-  internalNotes: text("internal_notes"),
-  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+require("esbuild-register/dist/node").register({
+  target: "node20",
+  format: "cjs",
+  platform: "node",
 });
 
-const attachments = pgTable("attachments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  requestId: integer("request_id")
-    .notNull()
-    .references(() => requests.id, { onDelete: "cascade" }),
-  originalFilename: varchar("original_filename", { length: 500 }).notNull(),
-  storedPath: varchar("stored_path", { length: 1000 }).notNull(),
-  mimeType: varchar("mime_type", { length: 255 }).notNull(),
-  sizeBytes: integer("size_bytes").notNull(),
-});
-
-const activityLog = pgTable("activity_log", {
-  id: serial("id").primaryKey(),
-  requestId: integer("request_id")
-    .notNull()
-    .references(() => requests.id, { onDelete: "cascade" }),
-  actorEmail: varchar("actor_email", { length: 255 }).notNull(),
-  field: varchar("field", { length: 255 }).notNull(),
-  oldValue: text("old_value"),
-  newValue: text("new_value"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-const adminUsers = pgTable("admin_users", {
-  id: serial("id").primaryKey(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-const schema = { requests, attachments, activityLog, adminUsers };
-
-const pool = new Pool({
-  host: process.env.DATABASE_HOST,
-  port: Number(process.env.DATABASE_PORT ?? "5432"),
-  database: process.env.DATABASE_NAME,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  ssl: process.env.DATABASE_SSL === "true" ? true : false,
-});
-
-const db = drizzle(pool, { schema });
+const { db, pool } = require("../lib/db");
+const { requests, attachments, activityLog, comments } = require("../lib/schema");
+const { eq } = require("drizzle-orm");
 
 async function main() {
   const year = new Date().getFullYear();
   const suffix = `${Date.now()}`.slice(-4);
   const [request] = await db
-    .insert(schema.requests)
+    .insert(requests)
     .values({
       publicReference: `NS-${year}-${suffix}`,
       fullName: "Test User",
       email: "test@example.com",
       projectType: "Website Work",
+      brandingDirection: "NStarX",
       projectTitle: "Smoke test request",
-      description: "Round-trip Drizzle query verification.",
+      description: "Round-trip Drizzle query verification with current schema.",
       priority: "Medium",
       status: "Submitted",
+      assignee: "Shantanu",
+      driveUrl: "https://drive.google.com/drive/folders/smoke",
     })
     .returning();
 
   console.log("Inserted request:", request.id, request.publicReference);
 
   const [attachment] = await db
-    .insert(schema.attachments)
+    .insert(attachments)
     .values({
       requestId: request.id,
       originalFilename: "smoke.txt",
@@ -113,31 +65,42 @@ async function main() {
 
   console.log("Inserted attachment:", attachment.id);
 
-  await db.insert(schema.activityLog).values({
+  await db.insert(activityLog).values({
     requestId: request.id,
     actorEmail: "admin@nstarxinc.com",
+    actorName: "Shantanu",
     field: "status",
     oldValue: null,
     newValue: "Submitted",
   });
 
-  const roundTrip = await db.query.requests.findFirst({
-    where: (r, { eq }) => eq(r.id, request.id),
+  await db.insert(comments).values({
+    requestId: request.id,
+    authorEmail: "admin@nstarxinc.com",
+    authorName: "Shantanu",
+    content: "Smoke test comment.",
   });
 
-  const attachmentsRows = await db
-    .select()
-    .from(schema.attachments)
-    .where(sql`${schema.attachments.requestId} = ${request.id}`);
+  const roundTrip = await db.query.requests.findFirst({
+    where: eq(requests.id, request.id),
+  });
 
-  const activityRows = await db
-    .select()
-    .from(schema.activityLog)
-    .where(sql`${schema.activityLog.requestId} = ${request.id}`);
+  const attachmentRows = await db.query.attachments.findMany({
+    where: eq(attachments.requestId, request.id),
+  });
+
+  const activityRows = await db.query.activityLog.findMany({
+    where: eq(activityLog.requestId, request.id),
+  });
+
+  const commentRows = await db.query.comments.findMany({
+    where: eq(comments.requestId, request.id),
+  });
 
   console.log("Round-trip request:", JSON.stringify(roundTrip, null, 2));
-  console.log("Round-trip attachments:", JSON.stringify(attachmentsRows, null, 2));
+  console.log("Round-trip attachments:", JSON.stringify(attachmentRows, null, 2));
   console.log("Round-trip activity:", JSON.stringify(activityRows, null, 2));
+  console.log("Round-trip comments:", JSON.stringify(commentRows, null, 2));
 
   await pool.end();
 }

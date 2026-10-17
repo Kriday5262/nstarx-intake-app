@@ -26,10 +26,12 @@ const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required.").max(255, "Too long."),
   email: z.string().min(1, "Email is required.").email("Please enter a valid email.").max(255, "Too long."),
   projectType: z.enum(["Deck Redesign", "Document Branding", "Video Creation", "Website Work", "Other"]),
+  brandingDirection: z.enum(["NStarX", "SHI", "NStarX + SHI", "Not sure", "Other"]),
   projectTitle: z.string().min(1, "Project title is required.").max(500, "Too long."),
   description: z.string().min(50, "Description must be at least 50 characters.").max(5000, "Description must be 5000 characters or less."),
   desiredDeadline: z.string().optional().nullable().or(z.literal("")),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]).default("Medium"),
+  driveUrl: z.string().max(1000, "Link is too long.").refine((val) => !val || /^https?:\/\/.+/.test(val), { message: "Please enter a valid URL starting with http:// or https://" }).optional().or(z.literal("")),
 });
 
 function generateReference(): string {
@@ -117,11 +119,14 @@ export async function POST(request: Request): Promise<NextResponse> {
         fullName: data.fullName,
         email: data.email,
         projectType: data.projectType,
+        brandingDirection: data.brandingDirection,
         projectTitle: data.projectTitle,
         description: data.description,
         desiredDeadline: deadlineDate ? deadlineDate.toISOString().slice(0, 10) : null,
         priority: data.priority,
         status: "Submitted",
+        assignee: "Shantanu",
+        driveUrl: data.driveUrl || null,
       })
       .returning();
 

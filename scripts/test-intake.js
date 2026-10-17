@@ -66,10 +66,12 @@ async function main() {
     form.append("fullName", "E2E Test User");
     form.append("email", "e2e@nstarxinc.com");
     form.append("projectType", "Deck Redesign");
+    form.append("brandingDirection", "NStarX");
     form.append("projectTitle", "E2E Test Deck");
     form.append("description", "This is an end-to-end test submission for the NStarX intake form. It includes enough characters to pass validation.");
     form.append("priority", "High");
     form.append("desiredDeadline", "");
+    form.append("driveUrl", "https://drive.google.com/drive/folders/e2e-test");
     form.append("fileCount", "1");
     form.append("fileName_0", "intake-test.txt");
     form.append("file_0", fs.createReadStream(tmpFile), { filename: "intake-test.txt", contentType: "text/plain" });
@@ -108,9 +110,12 @@ async function main() {
     if (row.full_name !== "E2E Test User") throw new Error("Wrong full_name");
     if (row.email !== "e2e@nstarxinc.com") throw new Error("Wrong email");
     if (row.project_type !== "Deck Redesign") throw new Error("Wrong project_type");
+    if (row.branding_direction !== "NStarX") throw new Error("Wrong branding_direction");
     if (row.project_title !== "E2E Test Deck") throw new Error("Wrong project_title");
     if (row.priority !== "High") throw new Error("Wrong priority");
     if (row.status !== "Submitted") throw new Error("Wrong status");
+    if (row.assignee !== "Shantanu") throw new Error("Wrong assignee");
+    if (row.drive_url !== "https://drive.google.com/drive/folders/e2e-test") throw new Error("Wrong drive_url");
 
     if (!row.stored_path || !fs.existsSync(row.stored_path)) throw new Error(`Uploaded file missing at ${row.stored_path}`);
     const uploadedContent = fs.readFileSync(row.stored_path, "utf8");

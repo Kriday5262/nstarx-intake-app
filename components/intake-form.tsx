@@ -206,18 +206,43 @@ export default function IntakeForm() {
               id="projectType"
               aria-invalid={Boolean(serverErrors?.projectType)}
               className={cn(
-                "bg-white",
+                "bg-white hover:border-brand-purple data-[state=open]:border-brand-purple",
                 serverErrors?.projectType && "border-brand-amber focus-visible:ring-brand-amber"
               )}
             >
               <SelectValue placeholder="Select a project type" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Deck Redesign">Deck Redesign</SelectItem>
-              <SelectItem value="Document Branding">Document Branding</SelectItem>
-              <SelectItem value="Video Creation">Video Creation</SelectItem>
-              <SelectItem value="Website Work">Website Work</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
+            <SelectContent className="bg-white border-brand-zebra">
+              <SelectItem
+                value="Deck Redesign"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Deck Redesign
+              </SelectItem>
+              <SelectItem
+                value="Document Branding"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Document Branding
+              </SelectItem>
+              <SelectItem
+                value="Video Creation"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Video Creation
+              </SelectItem>
+              <SelectItem
+                value="Website Work"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Website Work
+              </SelectItem>
+              <SelectItem
+                value="Other"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Other
+              </SelectItem>
             </SelectContent>
           </Select>
           {serverErrors?.projectType ? (
@@ -229,25 +254,80 @@ export default function IntakeForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="projectTitle">Project Title <span className="text-brand-amber">*</span></Label>
-          <Input
-            id="projectTitle"
-            name="projectTitle"
-            type="text"
-            placeholder="Q4 brand refresh deck"
-            aria-invalid={Boolean(serverErrors?.projectTitle)}
-            className={cn(
-              "bg-white",
-              serverErrors?.projectTitle && "border-brand-amber focus-visible:ring-brand-amber"
-            )}
-          />
-          {serverErrors?.projectTitle ? (
+          <Label htmlFor="brandingDirection">Branding Direction <span className="text-brand-amber">*</span></Label>
+          <Select name="brandingDirection" defaultValue="NStarX">
+            <SelectTrigger
+              id="brandingDirection"
+              aria-invalid={Boolean(serverErrors?.brandingDirection)}
+              className={cn(
+                "bg-white hover:border-brand-purple data-[state=open]:border-brand-purple",
+                serverErrors?.brandingDirection && "border-brand-amber focus-visible:ring-brand-amber"
+              )}
+            >
+              <SelectValue placeholder="Select branding direction" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-brand-zebra">
+              <SelectItem
+                value="NStarX"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                NStarX
+              </SelectItem>
+              <SelectItem
+                value="SHI"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                SHI
+              </SelectItem>
+              <SelectItem
+                value="NStarX + SHI"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                NStarX + SHI
+              </SelectItem>
+              <SelectItem
+                value="Not sure"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Not sure
+              </SelectItem>
+              <SelectItem
+                value="Other"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Other
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          {serverErrors?.brandingDirection ? (
             <p className="text-sm text-brand-amber flex items-center gap-1">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              {serverErrors.projectTitle}
+              {serverErrors.brandingDirection}
             </p>
           ) : null}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="projectTitle">Project Title <span className="text-brand-amber">*</span>
+        </Label>
+        <Input
+          id="projectTitle"
+          name="projectTitle"
+          type="text"
+          placeholder="Q4 brand refresh deck"
+          aria-invalid={Boolean(serverErrors?.projectTitle)}
+          className={cn(
+            "bg-white",
+            serverErrors?.projectTitle && "border-brand-amber focus-visible:ring-brand-amber"
+          )}
+        />
+        {serverErrors?.projectTitle ? (
+          <p className="text-sm text-brand-amber flex items-center gap-1">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {serverErrors.projectTitle}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -285,14 +365,34 @@ export default function IntakeForm() {
         <div className="space-y-2">
           <Label htmlFor="priority">Priority</Label>
           <Select name="priority" defaultValue="Medium">
-            <SelectTrigger id="priority" className="bg-white">
+            <SelectTrigger id="priority" className="bg-white hover:border-brand-purple data-[state=open]:border-brand-purple">
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Low">Low</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="High">High</SelectItem>
-              <SelectItem value="Urgent">Urgent</SelectItem>
+            <SelectContent className="bg-white border-brand-zebra">
+              <SelectItem
+                value="Low"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Low
+              </SelectItem>
+              <SelectItem
+                value="Medium"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Medium
+              </SelectItem>
+              <SelectItem
+                value="High"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                High
+              </SelectItem>
+              <SelectItem
+                value="Urgent"
+                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+              >
+                Urgent
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -374,6 +474,28 @@ export default function IntakeForm() {
               </li>
             ))}
           </ul>
+        ) : null}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="driveUrl">Google Drive Link <span className="text-brand-ink/50">(optional)</span>
+        </Label>
+        <Input
+          id="driveUrl"
+          name="driveUrl"
+          type="url"
+          placeholder="https://drive.google.com/drive/folders/..."
+          aria-invalid={Boolean(serverErrors?.driveUrl)}
+          className={cn(
+            "bg-white focus-visible:ring-brand-purple",
+            serverErrors?.driveUrl && "border-brand-amber focus-visible:ring-brand-amber"
+          )}
+        />
+        {serverErrors?.driveUrl ? (
+          <p className="text-sm text-brand-amber flex items-center gap-1">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {serverErrors.driveUrl}
+          </p>
         ) : null}
       </div>
 

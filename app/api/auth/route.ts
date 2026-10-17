@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.redirect(loginUrl, { status: 303 });
     }
 
-    await createSession(user.id, user.email);
+    await createSession(user.id, user.email, user.name ?? "");
 
     const target = from.startsWith("/") ? from : "/dashboard";
     return NextResponse.redirect(new URL(target, request.url), {

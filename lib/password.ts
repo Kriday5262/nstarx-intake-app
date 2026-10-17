@@ -9,6 +9,24 @@ const STANDARD_ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function verifyPassword(password: string, hash: string): boolean {
+  if (hash.startsWith("$2")) {
+    return verifyBcryptLike(password, hash);
+  }
+  // PBKDF2-SHA256 placeholder hashes for tests
+  if (hash.startsWith("pbkdf2:")) {
+    const [iterStr, saltHex, storedHex] = hash.slice(7).split(":");
+    const iterations = Number(iterStr);
+    if (!Number.isFinite(iterations) || iterations <= 0) return false;
+    const salt = Buffer.from(saltHex, "hex");
+    const keyLen = Buffer.from(storedHex, "hex").length;
+    const derived = crypto.pbkdf2Sync(password, salt, iterations, keyLen, "sha256");
+    const encoded = derived.toString("hex");
+    return storedHex === encoded;
+  }
+  return false;
+}
+
+function verifyBcryptLike(password: string, hash: string): boolean {
   if (!hash.startsWith("$2b$10$")) {
     return false;
   }

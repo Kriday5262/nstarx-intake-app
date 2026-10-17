@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Request Submitted — NStarX Intake",
+  title: "Request Submitted — NStarX Project Intake Form",
 };
 
 export default function SuccessPage({
@@ -41,8 +41,7 @@ export default function SuccessPage({
             </CardHeader>
             <CardContent className="text-center space-y-6">
               <p className="text-brand-ink/80">
-                Thank you. Shantanu will review the requirements with Sujay and
-                plan it in accordance with other priority items.
+                Welcome! Your project request has been submitted. Shantanu will review it with Sujay and plan it alongside other priority work. You&apos;ll receive an email confirmation with your reference number.
               </p>
               {ref ? (
                 <div className="bg-brand-zebra rounded-lg p-5 border border-brand-purple/20">

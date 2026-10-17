@@ -10,7 +10,6 @@ import {
   ChevronRight,
   ChevronsRight,
   Search,
-  Trash2,
   Eye,
   X,
   AlertCircle,
@@ -24,14 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   VALID_STATUSES,
@@ -49,19 +40,9 @@ const PROJECT_TYPES = [
   "Website Work",
   "Other",
 ] as const;
-const DEPARTMENTS = [
-  "Marketing",
-  "Sales",
-  "Product",
-  "Engineering",
-  "Operations",
-  "HR",
-  "Finance",
-  "Executive",
-  "Other",
-] as const;
-
-const PAGE_SIZE = 25;
+const ASSIGNEES = ["Shantanu", "Sujay"] as const;
+const CLOSED_STATUSES = ["Completed", "Rejected"] as const;
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
 export interface AdminRequest {
   id: number;
@@ -69,6 +50,8 @@ export interface AdminRequest {
   fullName: string;
   email: string;
   projectType: string;
+  brandingDirection?: string | null;
+  assignee?: string;
   projectTitle: string;
   description: string;
   desiredDeadline: string | null;
@@ -76,6 +59,7 @@ export interface AdminRequest {
   status: RequestStatus;
   dueDate: string | null;
   internalNotes?: string | null;
+  driveUrl?: string | null;
   submittedAt: string;
 }
 
@@ -89,6 +73,7 @@ type SortKey =
   | "projectType"
   | "priority"
   | "status"
+  | "assignee"
   | "dueDate"
   | "submittedAt";
 type SortDir = "asc" | "desc";
@@ -169,6 +154,9 @@ function sortRequests(
       case "status":
         comparison = a.status.localeCompare(b.status);
         break;
+      case "assignee":
+        comparison = (a.assignee || "").localeCompare(b.assignee || "");
+        break;
       case "dueDate": {
         const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
         const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
@@ -239,20 +227,18 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [priorityFilter, setPriorityFilter] = React.useState<string>("all");
   const [typeFilter, setTypeFilter] = React.useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = React.useState<string>("all");
+  const [showClosed, setShowClosed] = React.useState(false);
+  const [pageSize, setPageSize] = React.useState<number>(25);
   const [sortKey, setSortKey] = React.useState<SortKey>("submittedAt");
   const [sortDir, setSortDir] = React.useState<SortDir>("desc");
   const [page, setPage] = React.useState(1);
   const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
-  const [busyDelete, setBusyDelete] = React.useState<number | null>(null);
   const [busyStatus, setBusyStatus] = React.useState<number | null>(null);
   const [statusError, setStatusError] = React.useState<{
     id: number;
     message: string;
   } | null>(null);
-  const [deleteTarget, setDeleteTarget] = React.useState<AdminRequest | null>(
-    null
-  );
-  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   const query = search.trim().toLowerCase();
 
@@ -262,6 +248,10 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       if (priorityFilter !== "all" && r.priority !== priorityFilter)
         return false;
       if (typeFilter !== "all" && r.projectType !== typeFilter) return false;
+      if (assigneeFilter !== "all" && r.assignee !== assigneeFilter)
+        return false;
+      if (!showClosed && CLOSED_STATUSES.includes(r.status as typeof CLOSED_STATUSES[number]))
+        return false;
       if (query) {
         const hay = [
           r.projectTitle,
@@ -269,6 +259,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           r.fullName,
           r.email,
           r.publicReference,
+          r.assignee,
         ]
           .join(" ")
           .toLowerCase();
@@ -276,17 +267,17 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       }
       return true;
     });
-  }, [requests, statusFilter, priorityFilter, typeFilter, query]);
+  }, [requests, statusFilter, priorityFilter, typeFilter, assigneeFilter, showClosed, query]);
 
   const sorted = React.useMemo(
     () => sortRequests(filtered, sortKey, sortDir),
     [filtered, sortKey, sortDir]
   );
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const pageRows = sorted.slice(startIndex, startIndex + PAGE_SIZE);
+  const startIndex = (safePage - 1) * pageSize;
+  const pageRows = sorted.slice(startIndex, startIndex + pageSize);
 
   React.useEffect(() => {
     if (page > totalPages) setPage(totalPages);
@@ -294,7 +285,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, priorityFilter, typeFilter, search]);
+  }, [statusFilter, priorityFilter, typeFilter, assigneeFilter, showClosed, pageSize, search]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -362,48 +353,22 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
     }
   }
 
-  async function confirmDelete() {
-    if (!deleteTarget) return;
-    setDeleteError(null);
-    setBusyDelete(deleteTarget.id);
-    try {
-      const response = await fetch(
-        `/api/admin/requests/${deleteTarget.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setDeleteError(data.error || `Delete failed (${response.status})`);
-        return;
-      }
-      setRequests((prev) => prev.filter((r) => r.id !== deleteTarget.id));
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(deleteTarget.id);
-        return next;
-      });
-      setDeleteTarget(null);
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setBusyDelete(null);
-    }
-  }
-
   function clearFilters() {
     setSearch("");
     setStatusFilter("all");
     setPriorityFilter("all");
     setTypeFilter("all");
+    setAssigneeFilter("all");
+    setShowClosed(false);
   }
 
   const hasFilters =
     search ||
     statusFilter !== "all" ||
     priorityFilter !== "all" ||
-    typeFilter !== "all";
+    typeFilter !== "all" ||
+    assigneeFilter !== "all" ||
+    showClosed;
 
   return (
     <div className="space-y-4">
@@ -447,6 +412,21 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             options={PROJECT_TYPES}
             onChange={setTypeFilter}
           />
+          <FilterSelect
+            label="Assignee"
+            value={assigneeFilter}
+            options={ASSIGNEES}
+            onChange={setAssigneeFilter}
+          />
+          <label className="flex items-center gap-2 text-sm text-brand-ink/80 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-brand-ink/30 text-brand-purple focus:ring-brand-purple"
+              checked={showClosed}
+              onChange={(e) => setShowClosed(e.target.checked)}
+            />
+            Show completed/rejected
+          </label>
           {hasFilters && (
             <Button
               variant="ghost"
@@ -525,6 +505,15 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                 </th>
                 <th className="px-0 py-0">
                   <HeaderCell
+                    label="Assignee"
+                    sortKey="assignee"
+                    currentKey={sortKey}
+                    currentDir={sortDir}
+                    onSort={handleSort}
+                  />
+                </th>
+                <th className="px-0 py-0">
+                  <HeaderCell
                     label="Due Date"
                     sortKey="dueDate"
                     currentKey={sortKey}
@@ -548,7 +537,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             </thead>
             <tbody className="divide-y divide-brand-zebra">
               {pageRows.map((request) => {
-                const isTerminal = request.status === "Completed";
                 return (
                   <tr
                     key={request.id}
@@ -591,22 +579,23 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Badge className={statusClasses(request.status)}>
-                          {request.status}
-                        </Badge>
-                        {statusError?.id === request.id && (
-                          <span
-                            className="text-xs text-red-600 inline-flex items-center gap-1"
-                            title={statusError.message}
-                          >
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <span className="max-w-[160px] truncate">
-                              {statusError.message}
-                            </span>
+                      <Badge className={statusClasses(request.status)}>
+                        {request.status}
+                      </Badge>
+                      {statusError?.id === request.id && (
+                        <span
+                          className="text-xs text-red-600 inline-flex items-center gap-1"
+                          title={statusError.message}
+                        >
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          <span className="max-w-[160px] truncate">
+                            {statusError.message}
                           </span>
-                        )}
-                      </div>
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-brand-ink/80 whitespace-nowrap">
+                      {request.assignee || "—"}
                     </td>
                     <td className="px-4 py-3 text-brand-ink/80 whitespace-nowrap">
                       {formatDate(request.dueDate ?? request.desiredDeadline)}
@@ -625,23 +614,11 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                         </Link>
                         <InlineStatusSelect
                           value={request.status}
-                          disabled={busyStatus === request.id || isTerminal}
+                          disabled={busyStatus === request.id}
                           onChange={(next) =>
                             handleStatusChange(request, next)
                           }
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => {
-                            setDeleteError(null);
-                            setDeleteTarget(request);
-                          }}
-                          aria-label={`Delete request ${request.projectTitle}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -654,7 +631,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-brand-zebra">
           {pageRows.map((request) => {
-            const isTerminal = request.status === "Completed";
             return (
               <div
                 key={request.id}
@@ -716,6 +692,10 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     </div>
                   </div>
                   <div>
+                    <div className="text-xs text-brand-ink/50">Assignee</div>
+                    <div className="text-brand-ink/80">{request.assignee || "—"}</div>
+                  </div>
+                  <div>
                     <div className="text-xs text-brand-ink/50">Due</div>
                     <div className="text-brand-ink/80">
                       {formatDate(request.dueDate ?? request.desiredDeadline)}
@@ -736,21 +716,9 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     </Link>
                     <InlineStatusSelect
                       value={request.status}
-                      disabled={busyStatus === request.id || isTerminal}
+                      disabled={busyStatus === request.id}
                       onChange={(next) => handleStatusChange(request, next)}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => {
-                        setDeleteError(null);
-                        setDeleteTarget(request);
-                      }}
-                      aria-label={`Delete request ${request.projectTitle}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -769,14 +737,38 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
 
       {/* Pagination */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-brand-ink/70">
-          Showing {sorted.length === 0 ? 0 : startIndex + 1}–
-          {Math.min(startIndex + PAGE_SIZE, sorted.length)} of {sorted.length}{" "}
-          {filtered.length !== requests.length && (
-            <span className="text-brand-ink/50">
-              ({requests.length} total)
-            </span>
-          )}
+        <div className="flex items-center gap-4 text-sm text-brand-ink/70">
+          <span>
+            Showing {sorted.length === 0 ? 0 : startIndex + 1}–
+            {Math.min(startIndex + pageSize, sorted.length)} of {sorted.length}<span className="sr-only"> results</span>{" "}
+            {filtered.length !== requests.length && (
+              <span className="text-brand-ink/50">
+                ({requests.length} total)
+              </span>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <label className="text-brand-ink/70" htmlFor="page-size">Show</label>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => setPageSize(Number(v))}
+            >
+              <SelectTrigger id="page-size" className="h-8 w-[70px] bg-white border-brand-zebra focus:ring-brand-purple">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-white border-brand-zebra">
+                {PAGE_SIZE_OPTIONS.map((s) => (
+                  <SelectItem
+                    key={s}
+                    value={String(s)}
+                    className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+                  >
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           <Button
@@ -824,57 +816,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           </Button>
         </div>
       </div>
-
-      {/* Delete confirmation dialog */}
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteTarget(null);
-            setDeleteError(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-brand-ink">
-              Delete request?
-            </DialogTitle>
-            <DialogDescription className="text-brand-ink/70">
-              This will permanently remove{" "}
-              <strong className="text-brand-ink">
-                {deleteTarget?.projectTitle}
-              </strong>{" "}
-              ({deleteTarget?.publicReference}) and all related attachments and
-              activity history. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              {deleteError}
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteTarget(null);
-                setDeleteError(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={busyDelete === deleteTarget?.id}
-            >
-              {busyDelete === deleteTarget?.id ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -894,13 +835,22 @@ function FilterSelect({
     <div className="flex flex-col gap-1">
       <label className="text-xs font-medium text-brand-ink/70">{label}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full sm:w-[150px] bg-white border-brand-zebra focus:ring-brand-purple">
+        <SelectTrigger className="w-full sm:w-[150px] bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
           <SelectValue placeholder={`All ${label}s`} />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All</SelectItem>
+        <SelectContent className="bg-white border-brand-zebra">
+          <SelectItem
+            value="all"
+            className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+          >
+            All
+          </SelectItem>
           {options.map((o) => (
-            <SelectItem key={o} value={o}>
+            <SelectItem
+              key={o}
+              value={o}
+              className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+            >
               {o}
             </SelectItem>
           ))}
@@ -927,16 +877,20 @@ function InlineStatusSelect({
     >
       <SelectTrigger
         className={cn(
-          "h-8 w-[120px] text-xs border-brand-zebra focus:ring-brand-purple",
+          "h-8 w-[120px] text-xs border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple",
           disabled && "opacity-60 cursor-not-allowed"
         )}
         aria-label="Edit status"
       >
         <SelectValue placeholder="Status" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="bg-white border-brand-zebra">
         {STATUSES.map((s) => (
-          <SelectItem key={s} value={s}>
+          <SelectItem
+            key={s}
+            value={s}
+            className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
+          >
             {s}
           </SelectItem>
         ))}

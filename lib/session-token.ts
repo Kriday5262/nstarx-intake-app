@@ -19,12 +19,14 @@ export const SESSION_COOKIE_NAME = "admin_session";
 
 export type SessionPayload = {
   sub: string;
+  name: string;
   iat: number;
   exp: number;
 };
 
 type SessionInput = {
   sub: string;
+  name: string;
 };
 
 const ALGORITHM = "sha256";
@@ -77,6 +79,7 @@ export function signSession(
 
   const fullPayload: SessionPayload = {
     sub: payload.sub,
+    name: payload.name,
     iat: now,
     exp,
   };
@@ -165,6 +168,7 @@ function isSessionPayload(value: unknown): value is SessionPayload {
   return (
     typeof obj.sub === "string" &&
     obj.sub.length > 0 &&
+    (typeof obj.name === "string" || obj.name === undefined) &&
     typeof obj.iat === "number" &&
     Number.isInteger(obj.iat) &&
     obj.iat > 0 &&
