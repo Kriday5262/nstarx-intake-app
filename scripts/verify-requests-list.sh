@@ -54,6 +54,7 @@ ensure_request() {
     -F "fullName=Verifier" \
     -F "email=verifier@example.com" \
     -F "projectType=$ptype" \
+    -F "brandingDirection=NStarX" \
     -F "projectTitle=$title" \
     -F "description=$desc" \
     -F "priority=$prio" \
@@ -61,7 +62,7 @@ ensure_request() {
   echo "created: $title"
 }
 
-REQUIRED="Low Medium High Urgent Submitted In Review Planned In Progress"
+REQUIRED="Low Medium High Urgent Submitted In Review In Progress Completed Rejected Presentation Document Video Website Graphics UI/UX Other"
 MISSING=0
 for needle in $REQUIRED; do
   if ! echo "$LIST_BODY" | grep -q "$needle"; then
@@ -71,18 +72,22 @@ done
 
 if [[ "$COUNT" -lt 30 || "$MISSING" -gt 0 ]]; then
   echo "Seeding additional requests for filter/paging/badge tests (count=$COUNT missing=$MISSING)..."
-  TID_A="Alpha Redesign ($(date +%s%N))"
-  TID_B="Beta Branding ($(date +%s%N))"
+  TID_A="Alpha Presentation ($(date +%s%N))"
+  TID_B="Beta Document ($(date +%s%N))"
   TID_C="Gamma Video ($(date +%s%N))"
-  TID_D="Delta Site ($(date +%s%N))"
-  TID_E="Epsilon Other ($(date +%s%N))"
-  ensure_request "$TID_A" "Marketing" "Deck Redesign" "Low" "Submitted" "Alpha deck description with enough text to pass validation rules."
-  ensure_request "$TID_B" "Sales" "Document Branding" "Medium" "Submitted" "Beta document branding description with enough text to pass validation rules."
-  ensure_request "$TID_C" "Product" "Video Creation" "High" "Submitted" "Gamma video creation description with enough text to pass validation rules."
-  ensure_request "$TID_D" "Engineering" "Website Work" "Urgent" "Submitted" "Delta website work description with enough text to pass validation rules."
-  ensure_request "$TID_E" "Operations" "Other" "Medium" "Submitted" "Epsilon operations description with enough text to pass validation rules."
+  TID_D="Delta Website ($(date +%s%N))"
+  TID_E="Epsilon Graphics ($(date +%s%N))"
+  TID_F="Zeta UI/UX ($(date +%s%N))"
+  TID_G="Eta Other ($(date +%s%N))"
+  ensure_request "$TID_A" "Marketing" "Presentation" "Low" "Submitted" "Alpha presentation description with enough text to pass validation rules."
+  ensure_request "$TID_B" "Sales" "Document" "Medium" "Submitted" "Beta document description with enough text to pass validation rules."
+  ensure_request "$TID_C" "Product" "Video" "High" "Submitted" "Gamma video description with enough text to pass validation rules."
+  ensure_request "$TID_D" "Engineering" "Website" "Urgent" "Submitted" "Delta website description with enough text to pass validation rules."
+  ensure_request "$TID_E" "Design" "Graphics" "Medium" "Submitted" "Epsilon graphics description with enough text to pass validation rules."
+  ensure_request "$TID_F" "Product" "UI/UX" "High" "Submitted" "Zeta UI/UX description with enough text to pass validation rules."
+  ensure_request "$TID_G" "Operations" "Other" "Medium" "Submitted" "Eta other description with enough text to pass validation rules."
   for n in $(seq 1 25); do
-    ensure_request "Paging Test $n ($(date +%s%N))" "Finance" "Document Branding" "Low" "Submitted" "Paging test description with enough text to pass validation rules."
+    ensure_request "Paging Test $n ($(date +%s%N))" "Finance" "Document" "Low" "Submitted" "Paging test description with enough text to pass validation rules."
   done
 
   # Re-fetch to learn the actual IDs of the newly seeded rows, then patch statuses.
@@ -92,48 +97,33 @@ if [[ "$COUNT" -lt 30 || "$MISSING" -gt 0 ]]; then
   SEED_ID_2=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$TID_B'][0]['id'])")
   SEED_ID_3=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$TID_C'][0]['id'])")
   SEED_ID_4=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$TID_D'][0]['id'])")
-  echo "IDs: Alpha=$SEED_ID_1 Beta=$SEED_ID_2 Gamma=$SEED_ID_3 Delta=$SEED_ID_4"
-  echo "Patching seeded rows $SEED_ID_1 -> In Review, $SEED_ID_2 -> Planned, $SEED_ID_3 -> In Progress"
-  for id in "$SEED_ID_1" "$SEED_ID_2" "$SEED_ID_3" "$SEED_ID_4"; do
+  SEED_ID_5=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$TID_E'][0]['id'])")
+  SEED_ID_6=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$TID_F'][0]['id'])")
+  echo "IDs: Alpha=$SEED_ID_1 Beta=$SEED_ID_2 Gamma=$SEED_ID_3 Delta=$SEED_ID_4 Epsilon=$SEED_ID_5 Zeta=$SEED_ID_6"
+  echo "Patching seeded rows for new status flow and project types."
+  for id in "$SEED_ID_1" "$SEED_ID_2" "$SEED_ID_3" "$SEED_ID_4" "$SEED_ID_5" "$SEED_ID_6"; do
     echo "  stage In Review for $id"
     curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
       -d "{\"status\":\"In Review\"}" "$BASE_URL/api/admin/requests/$id/status" > /dev/null
   done
-  for id in "$SEED_ID_2" "$SEED_ID_3" "$SEED_ID_4"; do
-    echo "  stage Planned for $id"
-    curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-      -d "{\"status\":\"Planned\"}" "$BASE_URL/api/admin/requests/$id/status" > /dev/null
-  done
-  # Leave SEED_ID_1 at In Review; advance SEED_ID_2/3 to In Progress and keep one at Planned.
-  for id in "$SEED_ID_2" "$SEED_ID_3"; do
+  for id in "$SEED_ID_2" "$SEED_ID_3" "$SEED_ID_4" "$SEED_ID_5"; do
     echo "  stage In Progress for $id"
     curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
       -d "{\"status\":\"In Progress\"}" "$BASE_URL/api/admin/requests/$id/status" > /dev/null
   done
-  # Revert one of the In Progress rows back to Submitted so the value appears in data.
-  # NOTE: workflow currently disallows moving backwards, so we update DB directly.
-  echo "  revert $SEED_ID_3 to Submitted (DB direct update)"
-  BUMP_ID="$SEED_ID_3" node - <<'JS'
-const { Pool } = require("pg");
-const pool = new Pool({
-  host: process.env.DATABASE_HOST,
-  port: process.env.DATABASE_PORT,
-  database: process.env.DATABASE_NAME,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-});
-(async () => {
-  await pool.query("UPDATE requests SET status = 'Submitted' WHERE id = $1", [process.env.BUMP_ID]);
-  await pool.end();
-})();
-JS
-  # Make sure the diversity values are actually present and bump patched rows to the top.
-  LIST_BODY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests")
-  echo "After-patch statuses: $(echo "$LIST_BODY" | python3 -c "import sys,json; print(sorted(set(r['status'] for r in json.load(sys.stdin)['requests'])))")"
-  echo "After-patch priorities: $(echo "$LIST_BODY" | python3 -c "import sys,json; print(sorted(set(r['priority'] for r in json.load(sys.stdin)['requests'])))")"
-  # Patch target rows into the first page by bumping submittedAt so the rendered HTML contains them.
+  echo "  stage Not Started for $SEED_ID_4"
+  curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
+    -d "{\"status\":\"Not Started\"}" "$BASE_URL/api/admin/requests/$SEED_ID_4/status" > /dev/null
+  echo "  stage Completed for $SEED_ID_5"
+  curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
+    -d "{\"status\":\"Completed\"}" "$BASE_URL/api/admin/requests/$SEED_ID_5/status" > /dev/null
+  echo "  stage Rejected for $SEED_ID_6"
+  curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
+    -d "{\"status\":\"Rejected\"}" "$BASE_URL/api/admin/requests/$SEED_ID_6/status" > /dev/null
+
+  # Bump patched rows to the top by submittedAt so the rendered HTML contains them.
   set +u
-  for id in "$SEED_ID_1" "$SEED_ID_2" "$SEED_ID_3"; do
+  for id in "$SEED_ID_1" "$SEED_ID_2" "$SEED_ID_3" "$SEED_ID_4" "$SEED_ID_5" "$SEED_ID_6"; do
     BUMP_ID="$id" node - <<'JS'
 const { Pool } = require("pg");
 const pool = new Pool({
@@ -150,9 +140,11 @@ const pool = new Pool({
 JS
     echo "bumped submitted_at for id=$id"
   done
-  # Re-fetch the current API list after the bump so In Progress/Submitted are visible.
+
+  # Re-fetch the current API list after the bump so statuses/types are visible.
   LIST_BODY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests")
-  echo "After-bump statuses: $(echo "$LIST_BODY" | python3 -c "import sys,json; print(sorted(set(r['status'] for r in json.load(sys.stdin)['requests'])))")"
+  echo "After-patch statuses: $(echo "$LIST_BODY" | python3 -c "import sys,json; print(sorted(set(r['status'] for r in json.load(sys.stdin)['requests'])))")"
+  echo "After-patch types: $(echo "$LIST_BODY" | python3 -c "import sys,json; print(sorted(set(r['projectType'] for r in json.load(sys.stdin)['requests'])))")"
   set -u
 fi
 
@@ -161,14 +153,14 @@ LIST_BODY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests")
 NEW_COUNT=$(echo "$LIST_BODY" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['requests']))")
 echo "Total requests after seeding: $NEW_COUNT"
 
-# Ensure at least one Submitted row exists for the workflow tests.
+# Ensure at least one Submitted row exists for freeform tests.
 if ! echo "$LIST_BODY" | grep -q '"status":"Submitted"'; then
-  echo "Creating a fresh Submitted request for workflow tests..."
+  echo "Creating a fresh Submitted request for freeform tests..."
   T="Submitted Seed ($(date +%s%N))"
   curl -sS -b "$JAR" -c "$JAR" -X POST \
     -F "fullName=Verifier" \
     -F "email=verifier@example.com" \
-    -F "projectType=Deck Redesign" \
+    -F "projectType=Presentation" \
     -F "projectTitle=$T" \
     -F "description=Submitted seed description with enough text to pass validation rules." \
     -F "priority=Low" \
@@ -188,10 +180,8 @@ else
   FAIL=$((FAIL+1))
 fi
 
-# ---- Criterion 2: table markup contains key columns and badges ----
-# Columns are verified in HTML; badge values are verified against the API list so we
-# don't depend on which 25 rows happen to land on the first page.
-for needle in "Project Title" "Requester" "Priority" "Status" "Due Date" "Submitted" "Actions"; do
+# ---- Criterion 2: table markup contains required columns and only Round 3 status/type names ----
+for needle in "Project Title" "Requester" "Type" "Priority" "Status" "Assignee" "Due Date"; do
   if echo "$BODY" | grep -q "$needle"; then
     echo "PASS: found $needle"
     PASS=$((PASS+1))
@@ -201,13 +191,24 @@ for needle in "Project Title" "Requester" "Priority" "Status" "Due Date" "Submit
   fi
 done
 
-for needle in "Low" "Medium" "High" "Urgent" "Submitted" "In Review" "Planned" "In Progress"; do
+for needle in "Low" "Medium" "High" "Urgent" "Submitted" "Not Started" "In Progress" "In Review" "Completed" "Rejected" "Presentation" "Document" "Video" "Website" "Graphics" "UI/UX" "Other"; do
   if echo "$LIST_BODY" | grep -q "$needle"; then
-    echo "PASS: found badge/status value $needle in data"
+    echo "PASS: found status/type value $needle in data"
     PASS=$((PASS+1))
   else
-    echo "FAIL: missing badge/status value $needle in data"
+    echo "FAIL: missing status/type value $needle in data"
     FAIL=$((FAIL+1))
+  fi
+done
+
+# Old labels must not appear anywhere in the rendered list.
+for stale in "Deck Redesign" "Document Branding" "Video Creation" "Website Work" "Submitted Date" "Actions" "Edit status" "Show completed" "showingClosed" "Planned" "Approved" "In Queue" "Done" "Declined" "Closed"; do
+  if echo "$BODY" | grep -q "$stale"; then
+    echo "FAIL: stale label still present: $stale"
+    FAIL=$((FAIL+1))
+  else
+    echo "PASS: no stale label $stale"
+    PASS=$((PASS+1))
   fi
 done
 
@@ -231,46 +232,56 @@ else
   FAIL=$((FAIL+1))
 fi
 
-# ---- Criterion 5: Edit Status inline select present ----
-if echo "$BODY" | grep -q "Edit status" && echo "$BODY" | grep -q "aria-haspopup"; then
-  echo "PASS: inline status select present"
-  PASS=$((PASS+1))
-else
-  echo "FAIL: inline status select missing"
-  FAIL=$((FAIL+1))
-fi
-
-# ---- Criterion 6: workflow enforcement via API returns clear error ----
+# ---- Criterion 5: freeform status API accepts any transition ----
 TARGET=$(echo "$LIST_BODY" | python3 -c "import sys,json; print([r for r in json.load(sys.stdin)['requests'] if r['status']=='Submitted'][0]['id'])")
-echo "Workflow target request id: $TARGET"
-BAD=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
+echo "Freeform target request id: $TARGET"
+FREE=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
   -d '{"status":"Completed"}' "$BASE_URL/api/admin/requests/$TARGET/status")
-echo "Invalid transition response: $BAD"
-if [[ "$BAD" == *'error'* ]]; then
-  echo "PASS: workflow violation surfaced"
+FREE_STATUS=$(echo "$FREE" | tail -1 | sed 's/__STATUS__//')
+FREE_BODY=$(echo "$FREE" | sed '$d')
+echo "Completed transition response (status=$FREE_STATUS): $FREE_BODY"
+if [[ "$FREE_STATUS" == "200" && "$FREE_BODY" == *'"ok":true'* && "$FREE_BODY" == *'"status":"Completed"'* ]]; then
+  echo "PASS: freeform forward transition accepted"
   PASS=$((PASS+1))
 else
-  echo "FAIL: expected workflow error"
+  echo "FAIL: freeform forward transition not accepted"
+  FAIL=$((FAIL+1))
+fi
+BACK=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
+  -d '{"status":"Submitted"}' "$BASE_URL/api/admin/requests/$TARGET/status")
+BACK_STATUS=$(echo "$BACK" | tail -1 | sed 's/__STATUS__//')
+BACK_BODY=$(echo "$BACK" | sed '$d')
+echo "Back-to-Submitted transition response (status=$BACK_STATUS): $BACK_BODY"
+if [[ "$BACK_STATUS" == "200" && "$BACK_BODY" == *'"ok":true'* && "$BACK_BODY" == *'"status":"Submitted"'* ]]; then
+  echo "PASS: freeform backward transition accepted"
+  PASS=$((PASS+1))
+else
+  echo "FAIL: freeform backward transition not accepted"
   FAIL=$((FAIL+1))
 fi
 
-# ---- Criterion 7: valid status transition succeeds and activity logged ----
-VALID=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"In Review"}' "$BASE_URL/api/admin/requests/$TARGET/status")
-echo "Valid transition response: $VALID"
-if [[ "$VALID" == *'"ok":true'* && "$VALID" == *'"status":"In Review"'* ]]; then
-  echo "PASS: valid transition accepted"
-  PASS=$((PASS+1))
-else
-  echo "FAIL: valid transition not accepted"
-  FAIL=$((FAIL+1))
-fi
+# ---- Criterion 6: activity log records freeform transitions ----
 ACTIVITY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests/$TARGET/activity")
 if [[ "$ACTIVITY" == *'"field":"status"'* ]]; then
   echo "PASS: status change recorded in activity log"
   PASS=$((PASS+1))
 else
   echo "FAIL: activity log missing status entry"
+  FAIL=$((FAIL+1))
+fi
+
+# ---- Criterion 7: default view hides Completed/Rejected, filter shows them ----
+# The list is now a client-side React component; default HTML shows "Page 1 of 1" only after hydration.
+# Verify by checking API data vs rendered page counts.
+DEFAULT_COMPLETED=$(echo "$BODY" | grep -c "Completed" || true)
+FILTER_COMPLETED=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/dashboard/requests?status=Completed")
+FILTER_COMPLETED_COUNT=$(echo "$FILTER_COMPLETED" | grep -c "Completed" || true)
+echo "Default Completed mentions: $DEFAULT_COMPLETED, Filter Completed mentions: $FILTER_COMPLETED_COUNT"
+if [[ "$DEFAULT_COMPLETED" -le 2 && "$FILTER_COMPLETED_COUNT" -ge 1 ]]; then
+  echo "PASS: default hides Completed/Rejected while filter reveals them"
+  PASS=$((PASS+1))
+else
+  echo "FAIL: default hide / filter reveal logic"
   FAIL=$((FAIL+1))
 fi
 

@@ -53,6 +53,7 @@ curl -sS -b "$JAR" -c "$JAR" -X POST \
   -F "fullName=Workflow Verifier" \
   -F "email=workflow@example.com" \
   -F "projectType=Other" \
+  -F "brandingDirection=NStarX" \
   -F "projectTitle=$FRESH_TITLE" \
   -F "description=Workflow test description with enough text to satisfy the minimum length validation rule for the intake form." \
   -F "priority=Medium" \
@@ -61,25 +62,14 @@ LIST_BODY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests")
 REQUEST_ID=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$FRESH_TITLE'][0]['id'])")
 echo "Target request id: $REQUEST_ID"
 
-# ---- Criterion 3: invalid transition Submitted -> Completed rejected ----
-INVALID=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"Completed"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-INVALID_STATUS=$(echo "$INVALID" | tail -1 | sed 's/__STATUS__//')
-INVALID_BODY=$(echo "$INVALID" | sed '$d')
-echo "Invalid transition response (status=$INVALID_STATUS): $INVALID_BODY"
-if [[ "$INVALID_BODY" == *'error'* && "$INVALID_STATUS" == "400" ]]; then
-  PASS=$((PASS+1))
-else
-  echo "  Expected error for invalid transition"
-  FAIL=$((FAIL+1))
-fi
-
-# ---- Criterion 4: valid linear flow with activity log ----
-for NEXT in "In Review" "Planned" "In Progress"; do
-  R=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
+# ---- Criterion 3: freeform status - any transition succeeds ----
+for NEXT in "In Review" "Not Started" "In Progress" "Completed" "Rejected" "Submitted"; do
+  R=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
     -d "{\"status\":\"$NEXT\"}" "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-  echo "  -> $NEXT: $R"
-  if [[ "$R" == *'"ok":true'* && "$R" == *"\"status\":\"$NEXT\""* ]]; then
+  R_STATUS=$(echo "$R" | tail -1 | sed 's/__STATUS__//')
+  R_BODY=$(echo "$R" | sed '$d')
+  echo "  -> $NEXT (status=$R_STATUS): $R_BODY"
+  if [[ "$R_STATUS" == "200" && "$R_BODY" == *'"ok":true'* && "$R_BODY" == *"\"status\":\"$NEXT\""* ]]; then
     PASS=$((PASS+1))
   else
     echo "    FAIL"
@@ -88,67 +78,42 @@ for NEXT in "In Review" "Planned" "In Progress"; do
   sleep 0.15
 done
 
-# Move to Completed as a separate step and verify it is terminal
-R=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"Completed"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-echo "  -> Completed: $R"
-if [[ "$R" == *'"ok":true'* && "$R" == *'"status":"Completed"'* ]]; then
+# ---- Criterion 4: freeform backwards from Completed to any open status ----
+BACK=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
+  -d '{"status":"Submitted"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
+BACK_STATUS=$(echo "$BACK" | tail -1 | sed 's/__STATUS__//')
+BACK_BODY=$(echo "$BACK" | sed '$d')
+echo "Backwards from Completed -> Submitted (status=$BACK_STATUS): $BACK_BODY"
+if [[ "$BACK_STATUS" == "200" && "$BACK_BODY" == *'"ok":true'* && "$BACK_BODY" == *'"status":"Submitted"'* ]]; then
   PASS=$((PASS+1))
 else
-  echo "    FAIL"
+  echo "  FAIL"
   FAIL=$((FAIL+1))
 fi
 
-# ---- Criterion 5: terminal state Completed cannot be changed ----
-TERMINAL=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"In Review"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-echo "Terminal reject: $TERMINAL"
-if [[ "$TERMINAL" == *'error'* && "$TERMINAL" != *'"ok":true'* ]]; then
-  PASS=$((PASS+1))
-else
-  FAIL=$((FAIL+1))
-fi
-
-# ---- Criterion 5b: Rejected from any non-terminal state is valid, and Rejected can move back to Submitted ----
-REJECTED=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
+# ---- Criterion 5: Rejected from any state and back to any state ----
+REJ=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
   -d '{"status":"Rejected"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-echo "Rejected after Completed (should error): $REJECTED"
-if [[ "$REJECTED" == *'error'* ]]; then
+REJ_STATUS=$(echo "$REJ" | tail -1 | sed 's/__STATUS__//')
+REJ_BODY=$(echo "$REJ" | sed '$d')
+echo "Rejected from Submitted (status=$REJ_STATUS): $REJ_BODY"
+if [[ "$REJ_STATUS" == "200" && "$REJ_BODY" == *'"ok":true'* && "$REJ_BODY" == *'"status":"Rejected"'* ]]; then
   PASS=$((PASS+1))
 else
+  echo "  FAIL"
   FAIL=$((FAIL+1))
 fi
-
-# Use a fresh request for the Rejected pivot test so the rest of the checks run on a Submitted request
-PIVOT_TITLE="Workflow Pivot Test ($(date +%s%N))"
-curl -sS -b "$JAR" -c "$JAR" -X POST \
-  -F "fullName=Workflow Pivot" \
-  -F "email=pivot@example.com" \
-  -F "projectType=Other" \
-  -F "projectTitle=$PIVOT_TITLE" \
-  -F "description=Workflow pivot test description with enough text to satisfy the minimum length validation rule for the intake form." \
-  -F "priority=Low" \
-  "$BASE_URL/api/requests" > /dev/null
-PIVOT_ID=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests" | python3 -c "import sys,json; d=json.load(sys.stdin); print([r['id'] for r in d['requests'] if r['projectTitle']=='$PIVOT_TITLE'][0])")
-echo "Pivot test request id: $PIVOT_ID"
-REJECT_EARLY=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"Rejected"}' "$BASE_URL/api/admin/requests/$PIVOT_ID/status")
-echo "Reject from Submitted: $REJECT_EARLY"
-if [[ "$REJECT_EARLY" == *'"ok":true'* && "$REJECT_EARLY" == *'"status":"Rejected"'* ]]; then
+BACK_REJ=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
+  -d '{"status":"In Progress"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
+BACK_REJ_STATUS=$(echo "$BACK_REJ" | tail -1 | sed 's/__STATUS__//')
+BACK_REJ_BODY=$(echo "$BACK_REJ" | sed '$d')
+echo "Rejected -> In Progress (status=$BACK_REJ_STATUS): $BACK_REJ_BODY"
+if [[ "$BACK_REJ_STATUS" == "200" && "$BACK_REJ_BODY" == *'"ok":true'* && "$BACK_REJ_BODY" == *'"status":"In Progress"'* ]]; then
   PASS=$((PASS+1))
 else
+  echo "  FAIL"
   FAIL=$((FAIL+1))
 fi
-RESET_SUB=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"Submitted"}' "$BASE_URL/api/admin/requests/$PIVOT_ID/status")
-echo "Rejected->Submitted: $RESET_SUB"
-if [[ "$RESET_SUB" == *'"ok":true'* && "$RESET_SUB" == *'"status":"Submitted"'* ]]; then
-  PASS=$((PASS+1))
-else
-  FAIL=$((FAIL+1))
-fi
-# Continue priority/due-date/notes tests on the pivot request (now Submitted)
-REQUEST_ID=$PIVOT_ID
 
 # ---- Criterion 6: update priority writes activity ----
 PRIO=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \

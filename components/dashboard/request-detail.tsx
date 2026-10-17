@@ -281,7 +281,8 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
     }
   }
 
-  async function updateStatus() {
+  async function updateStatus(nextStatus?: RequestStatus) {
+    const target = nextStatus ?? selectedStatus;
     setStatusError(null);
     setStatusSuccess(false);
 
@@ -290,14 +291,15 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
       const response = await fetch(`/api/admin/requests/${requestData.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: selectedStatus }),
+        body: JSON.stringify({ status: target }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setStatusError(data.error || `Update failed (${response.status}).`);
         return;
       }
-      setRequestData((prev) => ({ ...prev, status: selectedStatus }));
+      setRequestData((prev) => ({ ...prev, status: target }));
+      if (nextStatus) setSelectedStatus(nextStatus);
       setStatusSuccess(true);
       await loadActivity();
       setTimeout(() => setStatusSuccess(false), 2000);
@@ -637,6 +639,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                   setSelectedStatus(v as RequestStatus);
                   setStatusError(null);
                   setStatusSuccess(false);
+                  updateStatus(v as RequestStatus);
                 }}
               >
                 <SelectTrigger id="status" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
@@ -655,8 +658,8 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 </SelectContent>
               </Select>
               <Button
-                onClick={updateStatus}
-                disabled={busyStatus || selectedStatus === requestData.status}
+                onClick={() => updateStatus()}
+                disabled={busyStatus}
                 className="w-full bg-brand-purple hover:bg-brand-purple-dark text-white"
               >
                 {busyStatus ? "Updating…" : "Update Status"}

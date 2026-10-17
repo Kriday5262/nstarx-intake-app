@@ -34,6 +34,7 @@ curl -sS -b "$JAR" -c "$JAR" -X POST \
   -F "fullName=Detail Verifier" \
   -F "email=detail@example.com" \
   -F "projectType=Other" \
+  -F "brandingDirection=NStarX" \
   -F "projectTitle=$FRESH_TITLE" \
   -F "description=Detail page verification description with enough text to satisfy the minimum length validation rule for the intake form." \
   -F "priority=Medium" \
@@ -42,7 +43,7 @@ LIST_BODY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests")
 REQUEST_ID=$(echo "$LIST_BODY" | python3 -c "import sys,json; rows=json.load(sys.stdin)['requests']; print([r for r in rows if r['projectTitle']=='$FRESH_TITLE'][0]['id'])")
 echo "Target request id: $REQUEST_ID"
 
-# ---- Criterion 1: detail page renders every submitted field and has back link ----
+# ---- Criterion 1: detail page renders every submitted field, uses new status/type names, and has back link ----
 DETAIL_HTML=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/dashboard/requests/$REQUEST_ID")
 echo "Detail page length: ${#DETAIL_HTML}"
 if [[ "$DETAIL_HTML" == *"Request details"* \
@@ -52,7 +53,17 @@ if [[ "$DETAIL_HTML" == *"Request details"* \
    && "$DETAIL_HTML" == *"Email"* \
    && "$DETAIL_HTML" == *"Project type"* \
    && "$DETAIL_HTML" == *"Desired deadline"* \
-   && "$DETAIL_HTML" == *"Submitted"* ]]; then
+   && "$DETAIL_HTML" == *"Submitted"* \
+   && "$DETAIL_HTML" != *"Deck Redesign"* \
+   && "$DETAIL_HTML" != *"Document Branding"* \
+   && "$DETAIL_HTML" != *"Video Creation"* \
+   && "$DETAIL_HTML" != *"Website Work"* \
+   && "$DETAIL_HTML" != *"Pending"* \
+   && "$DETAIL_HTML" != *"Approved"* \
+   && "$DETAIL_HTML" != *"In Queue"* \
+   && "$DETAIL_HTML" != *"Done"* \
+   && "$DETAIL_HTML" != *"Declined"* \
+   && "$DETAIL_HTML" != *"Closed"* ]]; then
   echo "Detail page renders submitted fields: PASS"
   PASS=$((PASS+1))
 else
@@ -73,44 +84,36 @@ else
   FAIL=$((FAIL+1))
 fi
 
-# ---- Criterion 3: invalid transition is blocked server-side and shows error ----
-INVALID=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
+# ---- Criterion 3: status is freeform; any -> any transition succeeds ----
+FREE=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
   -d '{"status":"Completed"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-INVALID_STATUS=$(echo "$INVALID" | tail -1 | sed 's/__STATUS__//')
-INVALID_BODY=$(echo "$INVALID" | sed '$d')
-echo "Invalid transition (status=$INVALID_STATUS): ${INVALID_BODY:0:200}"
-if [[ "$INVALID_STATUS" == "400" && "$INVALID_BODY" == *'error'* ]]; then
-  echo "Invalid transition blocked: PASS"
+FREE_STATUS=$(echo "$FREE" | tail -1 | sed 's/__STATUS__//')
+FREE_BODY=$(echo "$FREE" | sed '$d')
+echo "Freeform transition to Completed (status=$FREE_STATUS): ${FREE_BODY:0:200}"
+if [[ "$FREE_STATUS" == "200" && "$FREE_BODY" == *'"ok":true'* && "$FREE_BODY" == *'"status":"Completed"'* ]]; then
+  echo "Freeform transition to Completed: PASS"
   PASS=$((PASS+1))
 else
-  echo "Invalid transition blocked: FAIL"
+  echo "Freeform transition to Completed: FAIL"
   FAIL=$((FAIL+1))
 fi
 
-# Verify request still Submitted after invalid attempt
-CURRENT_STATUS=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests/$REQUEST_ID" | python3 -c "import sys,json; print(json.load(sys.stdin)['request']['status'])")
-if [[ "$CURRENT_STATUS" == "Submitted" ]]; then
-  echo "No state change after invalid transition: PASS"
+# ---- Criterion 4: freeform backwards transition also succeeds ----
+BACK=$(curl -sS -b "$JAR" -c "$JAR" -w "\n__STATUS__%{http_code}" -X PATCH -H "Content-Type: application/json" \
+  -d '{"status":"Submitted"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
+BACK_STATUS=$(echo "$BACK" | tail -1 | sed 's/__STATUS__//')
+BACK_BODY=$(echo "$BACK" | sed '$d')
+echo "Freeform backwards transition to Submitted (status=$BACK_STATUS): ${BACK_BODY:0:200}"
+if [[ "$BACK_STATUS" == "200" && "$BACK_BODY" == *'"ok":true'* && "$BACK_BODY" == *'"status":"Submitted"'* ]]; then
+  echo "Freeform backwards transition to Submitted: PASS"
   PASS=$((PASS+1))
 else
-  echo "No state change after invalid transition: FAIL (status=$CURRENT_STATUS)"
-  FAIL=$((FAIL+1))
-fi
-
-# ---- Criterion 4: valid status update persists and writes activity ----
-R=$(curl -sS -b "$JAR" -c "$JAR" -X PATCH -H "Content-Type: application/json" \
-  -d '{"status":"In Review"}' "$BASE_URL/api/admin/requests/$REQUEST_ID/status")
-echo "Status update: $R"
-if [[ "$R" == *'"ok":true'* && "$R" == *'"status":"In Review"'* ]]; then
-  echo "Status update persisted: PASS"
-  PASS=$((PASS+1))
-else
-  echo "Status update persisted: FAIL"
+  echo "Freeform backwards transition to Submitted: FAIL"
   FAIL=$((FAIL+1))
 fi
 
 ACTIVITY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/api/admin/requests/$REQUEST_ID/activity")
-if [[ "$ACTIVITY" == *'"field":"status"'* && "$ACTIVITY" == *'"newValue":"In Review"'* ]]; then
+if [[ "$ACTIVITY" == *'"field":"status"'* && "$ACTIVITY" == *'"newValue":"Submitted"'* ]]; then
   echo "Activity log updated for status: PASS"
   PASS=$((PASS+1))
 else
