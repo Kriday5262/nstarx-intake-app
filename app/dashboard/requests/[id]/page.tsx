@@ -6,6 +6,7 @@ import { requests, attachments } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { RequestDetail } from "@/components/dashboard/request-detail";
 import type { RequestStatus } from "@/lib/status-workflow";
+import { serializeTimestamp } from "@/lib/formatting";
 
 export const metadata: Metadata = {
   title: "Request Detail · NStarX Project Intake System",
@@ -59,7 +60,7 @@ export default async function RequestDetailPage({ params }: PageProps) {
       : null,
     driveUrl: requestRow.driveUrl,
     internalNotes: requestRow.internalNotes ?? "",
-    submittedAt: requestRow.submittedAt.toISOString(),
+    submittedAt: serializeTimestamp(requestRow.submittedAt) ?? "",
   };
 
   const initialAttachments = attachmentRows.map((a) => ({

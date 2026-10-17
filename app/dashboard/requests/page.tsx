@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requests } from "@/lib/schema";
 import { asc, sql } from "drizzle-orm";
 import { RequestsList, type AdminRequest } from "@/components/dashboard/requests-list";
+import { serializeTimestamp } from "@/lib/formatting";
 
 export const metadata: Metadata = {
   title: "Requests · NStarX Project Intake System",
@@ -31,7 +32,7 @@ export default async function RequestsPage() {
     assignee: r.assignee,
     dueDate: r.dueDate,
     internalNotes: r.internalNotes,
-    submittedAt: r.submittedAt.toISOString(),
+    submittedAt: serializeTimestamp(r.submittedAt) ?? "",
   }));
 
   return (

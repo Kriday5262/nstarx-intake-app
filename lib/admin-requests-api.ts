@@ -8,6 +8,7 @@ import type { RequestStatus } from "@/lib/status-workflow";
 import { requireCurrentAdmin } from "@/lib/session";
 import { sendCommentNotification } from "@/lib/email";
 import { env } from "@/lib/env";
+import { serializeTimestamp } from "@/lib/formatting";
 
 const priorities = ["Low", "Medium", "High", "Urgent"] as const;
 const assignees = ["Shantanu", "Sujay"] as const;
@@ -116,7 +117,7 @@ export async function GET_ONE(
       internalNotes: requestRow.internalNotes,
       assignee: requestRow.assignee,
       driveUrl: requestRow.driveUrl,
-      submittedAt: requestRow.submittedAt,
+      submittedAt: serializeTimestamp(requestRow.submittedAt),
     },
     attachments: attachmentRows.map((a) => ({
       id: a.id,
@@ -187,7 +188,7 @@ export async function GET() {
       internalNotes: r.internalNotes,
       assignee: r.assignee,
       driveUrl: r.driveUrl,
-      submittedAt: r.submittedAt,
+      submittedAt: serializeTimestamp(r.submittedAt),
     })),
   });
 }
@@ -396,7 +397,7 @@ export async function GET_ACTIVITY(
       field: r.field,
       oldValue: r.oldValue,
       newValue: r.newValue,
-      createdAt: r.createdAt,
+      createdAt: serializeTimestamp(r.createdAt),
     })),
   });
 }
@@ -499,7 +500,7 @@ export async function GET_COMMENTS(_request: NextRequest, { params }: { params: 
       actorName: r.authorName,
       actorEmail: r.authorEmail,
       content: r.content,
-      createdAt: r.createdAt,
+      createdAt: serializeTimestamp(r.createdAt),
     })),
   });
 }
@@ -545,7 +546,7 @@ export async function POST_COMMENT(request: NextRequest, { params }: { params: {
       actorName: comment.authorName,
       actorEmail: comment.authorEmail,
       content: comment.content,
-      createdAt: comment.createdAt,
+      createdAt: serializeTimestamp(comment.createdAt),
     },
   });
 }
