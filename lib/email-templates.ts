@@ -46,6 +46,7 @@ export function escapeHtml(value: unknown): string {
 }
 
 export function brandWrapper(title: string, body: string): string {
+  const logoUrl = `${env.baseUrl()}/nstarx-logo-horizontal.png`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,6 +63,7 @@ export function brandWrapper(title: string, body: string): string {
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#FFFFFF;border-radius:8px;overflow:hidden;border:1px solid #E4E7EB;">
           <tr>
             <td style="background-color:#6464B4;padding:24px 32px;text-align:center;">
+              <img src="${escapeHtml(logoUrl)}" alt="NStarX" width="160" height="40" style="display:block;margin:0 auto 12px auto;height:auto;max-width:160px;border:0;">
               <h1 style="margin:0;font-family:Montserrat,Impact,sans-serif;font-weight:900;font-size:22px;line-height:1.25;color:#FFFFFF;">${escapeHtml(title)}</h1>
             </td>
           </tr>
