@@ -30,7 +30,7 @@ const sampleRequest = {
   publicReference: "NSX-20261016-001",
   fullName: "Jane Doe",
   email: "jane.doe@example.com",
-  projectType: "Deck Redesign",
+  projectType: "Presentation",
   projectTitle: "Q4 Brand Refresh Deck",
   description:
     "We need the Q4 brand refresh presentation redesigned to match the new NStarX visual identity. It should be clean, modern, and use the approved purple/lime color palette.\n\nPlease include editable source files.",
@@ -87,7 +87,7 @@ function run() {
     "admin notification html contains all submitted fields",
     admin.html.includes("Jane Doe") &&
       admin.html.includes("jane.doe@example.com") &&
-      admin.html.includes("Deck Redesign") &&
+      admin.html.includes("Presentation") &&
       admin.html.includes("Q4 Brand Refresh Deck") &&
       admin.html.includes("NStarX visual identity") &&
       admin.html.includes("November 15, 2026") &&
@@ -186,7 +186,7 @@ function run() {
 
     const sampleComment = {
       actorName: "Shantanu",
-      actorEmail: "shantanu.chaturvedi@nstarxinc.com",
+      actorEmail: "shantanu@kamkazi.com",
       content:
         "Let's finalize the color palette before moving this into production. I've left notes in the drive folder.",
     };

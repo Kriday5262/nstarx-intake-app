@@ -46,40 +46,42 @@ export function escapeHtml(value: unknown): string {
 }
 
 export function brandWrapper(title: string, body: string): string {
-  return `\u003c!DOCTYPE html\u003e
-\u003chtml lang="en"\u003e
-\u003chead\u003e
-  \u003cmeta charset="UTF-8"\u003e
-  \u003cmeta name="viewport" content="width=device-width, initial-scale=1.0"\u003e
-  \u003ctitle\u003e${escapeHtml(title)}\u003c/title\u003e
-\u003c/head\u003e
-\u003cbody style="margin:0;padding:0;background-color:#F4F6F9;font-family:'Nunito Sans',Nunito,Arial,sans-serif;color:#333F50;"\u003e
-  \u003ctable width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6F9;"\u003e
-    \u003ctr\u003e
-      \u003ctd align="center" style="padding:24px 16px;"\u003e
-        \u003ctable width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#FFFFFF;border-radius:8px;overflow:hidden;border:1px solid #E4E7EB;"\u003e
-          \u003ctr\u003e
-            \u003ctd style="background-color:#6464B4;padding:24px 32px;text-align:center;"\u003e
-              \u003ch1 style="margin:0;font-family:Montserrat,Impact,sans-serif;font-weight:900;font-size:22px;line-height:1.25;color:#FFFFFF;"\u003e${escapeHtml(title)}\u003c/h1\u003e
-            \u003c/td\u003e
-          \u003c/tr\u003e
-          \u003ctr\u003e
-            \u003ctd style="padding:32px;"\u003e
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <link rel="icon" type="image/png" href="https://nstarxinc.com/wp-content/uploads/2024/10/cropped-favicon-180x180.png">
+  <link rel="shortcut icon" type="image/png" href="https://nstarxinc.com/wp-content/uploads/2024/10/cropped-favicon-180x180.png">
+</head>
+<body style="margin:0;padding:0;background-color:#F4F6F9;font-family:'Nunito Sans',Nunito,Arial,sans-serif;color:#333F50;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6F9;">
+    <tr>
+      <td align="center" style="padding:24px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#FFFFFF;border-radius:8px;overflow:hidden;border:1px solid #E4E7EB;">
+          <tr>
+            <td style="background-color:#6464B4;padding:24px 32px;text-align:center;">
+              <h1 style="margin:0;font-family:Montserrat,Impact,sans-serif;font-weight:900;font-size:22px;line-height:1.25;color:#FFFFFF;">${escapeHtml(title)}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
               ${body}
-            \u003c/td\u003e
-          \u003c/tr\u003e
-          \u003ctr\u003e
-            \u003ctd style="padding:24px 32px;border-top:1px solid #E4E7EB;text-align:center;color:#6464B4;font-size:12px;line-height:1.5;"\u003e
-              NStarX Intake · Powered by NStarX\u003cbr\u003e
-              \u003cspan style="color:#333F50;"\u003eThis is an automated message. Please do not reply directly to this email.\u003c/span\u003e
-            \u003c/td\u003e
-          \u003c/tr\u003e
-        \u003c/table\u003e
-      \u003c/td\u003e
-    \u003c/tr\u003e
-  \u003c/table\u003e
-\u003c/body\u003e
-\u003c/html\u003e`;
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px;border-top:1px solid #E4E7EB;text-align:center;color:#6464B4;font-size:12px;line-height:1.5;">
+              NStarX Intake · Powered by NStarX<br>
+              <span style="color:#333F50;">This is an automated message. Please do not reply directly to this email.</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 export function ctaButton(href: string, label: string): string {

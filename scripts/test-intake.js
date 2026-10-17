@@ -65,7 +65,7 @@ async function main() {
     const form = new FormData();
     form.append("fullName", "E2E Test User");
     form.append("email", "e2e@nstarxinc.com");
-    form.append("projectType", "Deck Redesign");
+    form.append("projectType", "Presentation");
     form.append("brandingDirection", "NStarX");
     form.append("projectTitle", "E2E Test Deck");
     form.append("description", "This is an end-to-end test submission for the NStarX intake form. It includes enough characters to pass validation.");
@@ -109,7 +109,7 @@ async function main() {
 
     if (row.full_name !== "E2E Test User") throw new Error("Wrong full_name");
     if (row.email !== "e2e@nstarxinc.com") throw new Error("Wrong email");
-    if (row.project_type !== "Deck Redesign") throw new Error("Wrong project_type");
+    if (row.project_type !== "Presentation") throw new Error("Wrong project_type");
     if (row.branding_direction !== "NStarX") throw new Error("Wrong branding_direction");
     if (row.project_title !== "E2E Test Deck") throw new Error("Wrong project_title");
     if (row.priority !== "High") throw new Error("Wrong priority");

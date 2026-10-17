@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { requireCurrentAdmin } from "@/lib/session";
 import { db } from "@/lib/db";
 import { requests } from "@/lib/schema";
-import { desc } from "drizzle-orm";
+import { asc, sql } from "drizzle-orm";
 import { RequestsList, type AdminRequest } from "@/components/dashboard/requests-list";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export default async function RequestsPage() {
   await requireCurrentAdmin();
 
   const rows = await db.query.requests.findMany({
-    orderBy: [desc(requests.submittedAt)],
+    orderBy: [asc(sql`coalesce(${requests.dueDate}, '9999-12-31'::date)`)],
   });
 
   const initialRequests: AdminRequest[] = rows.map((r) => ({

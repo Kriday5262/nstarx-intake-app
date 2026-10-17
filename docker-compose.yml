@@ -32,6 +32,8 @@ services:
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: "5434"
       # Assignee notification addresses (override any missing .env entries).
+      # ASSIGNEE_SUJAY_EMAIL is intentionally set to shantanu@kamkazi.com placeholder
+      # so no real sujay@nstarxinc.com address is used in test/dev.
       ASSIGNEE_SHANTANU_EMAIL: shantanu.chaturvedi@nstarxinc.com
       ASSIGNEE_SUJAY_EMAIL: shantanu@kamkazi.com
     volumes:

@@ -30,7 +30,6 @@ import {
 import {
   VALID_STATUSES,
   type RequestStatus,
-  validateStatusTransition,
 } from "@/lib/status-workflow";
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const;
@@ -88,12 +87,12 @@ function statusClasses(status: RequestStatus) {
   switch (status) {
     case "Submitted":
       return "bg-slate-100 text-slate-700 border-slate-200";
-    case "In Review":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "Planned":
+    case "Not Started":
       return "bg-indigo-100 text-indigo-700 border-indigo-200";
     case "In Progress":
       return "bg-sky-100 text-sky-700 border-sky-200";
+    case "In Review":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
     case "Completed":
       return "bg-green-100 text-green-700 border-green-200";
     case "Rejected":
@@ -285,12 +284,6 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
   async function updateStatus() {
     setStatusError(null);
     setStatusSuccess(false);
-
-    const validation = validateStatusTransition(requestData.status, selectedStatus);
-    if (!validation.ok) {
-      setStatusError(validation.error);
-      return;
-    }
 
     setBusyStatus(true);
     try {

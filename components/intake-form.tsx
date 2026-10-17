@@ -213,36 +213,13 @@ export default function IntakeForm() {
               <SelectValue placeholder="Select a project type" />
             </SelectTrigger>
             <SelectContent className="bg-white border-brand-zebra">
-              <SelectItem
-                value="Deck Redesign"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Deck Redesign
-              </SelectItem>
-              <SelectItem
-                value="Document Branding"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Document Branding
-              </SelectItem>
-              <SelectItem
-                value="Video Creation"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Video Creation
-              </SelectItem>
-              <SelectItem
-                value="Website Work"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Website Work
-              </SelectItem>
-              <SelectItem
-                value="Other"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Other
-              </SelectItem>
+              <SelectItem value="Presentation">Presentation</SelectItem>
+              <SelectItem value="Document">Document</SelectItem>
+              <SelectItem value="Video">Video</SelectItem>
+              <SelectItem value="Website">Website</SelectItem>
+              <SelectItem value="Graphics">Graphics</SelectItem>
+              <SelectItem value="UI/UX">UI/UX</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
           {serverErrors?.projectType ? (

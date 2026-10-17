@@ -21,14 +21,19 @@ export const env = {
     return raw
       .split(",")
       .map((e) => e.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter((e) => !e.toLowerCase().includes("sujay@nstarxinc.com"));
   },
   assigneeEmail: (assignee: string): string | undefined => {
     const map: Record<string, string | undefined> = {
       Shantanu: process.env.ASSIGNEE_SHANTANU_EMAIL,
       Sujay: process.env.ASSIGNEE_SUJAY_EMAIL,
     };
-    return map[assignee];
+    const value = map[assignee];
+    if (value && value.toLowerCase().includes("sujay@nstarxinc.com")) {
+      return undefined;
+    }
+    return value;
   },
   baseUrl: () =>
     process.env.NEXT_PUBLIC_BASE_URL ?? "https://nstarx-intake.kamkazi.com",

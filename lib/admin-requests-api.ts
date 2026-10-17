@@ -3,9 +3,9 @@ import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requests, attachments, activityLog, comments } from "@/lib/schema";
+import { VALID_STATUSES } from "@/lib/status-workflow";
 import type { RequestStatus } from "@/lib/status-workflow";
 import { requireCurrentAdmin } from "@/lib/session";
-import { validateStatusTransition, VALID_STATUSES } from "@/lib/status-workflow";
 import { sendCommentNotification } from "@/lib/email";
 
 const priorities = ["Low", "Medium", "High", "Urgent"] as const;
@@ -212,10 +212,6 @@ export async function PATCH_STATUS(request: NextRequest, { params }: { params: {
 
   const current = requestRow.status as RequestStatus;
   const next = parsed.data.status;
-  const validation = validateStatusTransition(current, next);
-  if (!validation.ok) {
-    return badRequest(validation.error);
-  }
 
   if (current !== next) {
     await db

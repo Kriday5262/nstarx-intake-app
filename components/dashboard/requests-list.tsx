@@ -10,9 +10,7 @@ import {
   ChevronRight,
   ChevronsRight,
   Search,
-  Eye,
   X,
-  AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,20 +22,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import {
-  VALID_STATUSES,
-  type RequestStatus,
-  validateStatusTransition,
-} from "@/lib/status-workflow";
+import { VALID_STATUSES, type RequestStatus } from "@/lib/status-workflow";
 
 const STATUSES = VALID_STATUSES;
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const;
 const PROJECT_TYPES = [
-  "Deck Redesign",
-  "Document Branding",
-  "Video Creation",
-  "Website Work",
+  "Presentation",
+  "Document",
+  "Video",
+  "Website",
+  "Graphics",
+  "UI/UX",
   "Other",
 ] as const;
 const ASSIGNEES = ["Shantanu", "Sujay"] as const;
@@ -74,8 +70,7 @@ type SortKey =
   | "priority"
   | "status"
   | "assignee"
-  | "dueDate"
-  | "submittedAt";
+  | "dueDate";
 type SortDir = "asc" | "desc";
 
 const priorityRank: Record<string, number> = {
@@ -83,6 +78,15 @@ const priorityRank: Record<string, number> = {
   Medium: 2,
   High: 3,
   Urgent: 4,
+};
+
+const statusRank: Record<string, number> = {
+  Submitted: 1,
+  "Not Started": 2,
+  "In Progress": 3,
+  "In Review": 4,
+  Completed: 5,
+  Rejected: 6,
 };
 
 function formatDate(value: string | null | undefined) {
@@ -94,6 +98,15 @@ function formatDate(value: string | null | undefined) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function isOverdue(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d.getTime() < today.getTime();
 }
 
 function priorityClasses(priority: string) {
@@ -115,12 +128,12 @@ function statusClasses(status: RequestStatus) {
   switch (status) {
     case "Submitted":
       return "bg-slate-100 text-slate-700 border-slate-200";
-    case "In Review":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "Planned":
+    case "Not Started":
       return "bg-indigo-100 text-indigo-700 border-indigo-200";
     case "In Progress":
       return "bg-sky-100 text-sky-700 border-sky-200";
+    case "In Review":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
     case "Completed":
       return "bg-green-100 text-green-700 border-green-200";
     case "Rejected":
@@ -152,7 +165,8 @@ function sortRequests(
           (priorityRank[a.priority] ?? 0) - (priorityRank[b.priority] ?? 0);
         break;
       case "status":
-        comparison = a.status.localeCompare(b.status);
+        comparison =
+          (statusRank[a.status] ?? 0) - (statusRank[b.status] ?? 0);
         break;
       case "assignee":
         comparison = (a.assignee || "").localeCompare(b.assignee || "");
@@ -160,12 +174,6 @@ function sortRequests(
       case "dueDate": {
         const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
         const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-        comparison = aDate - bDate;
-        break;
-      }
-      case "submittedAt": {
-        const aDate = new Date(a.submittedAt).getTime();
-        const bDate = new Date(b.submittedAt).getTime();
         comparison = aDate - bDate;
         break;
       }
@@ -194,7 +202,7 @@ function HeaderCell({
       type="button"
       onClick={() => onSort(sortKey)}
       className={cn(
-        "group flex w-full items-center gap-1.5 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-brand-zebra",
+        "group flex w-full items-center gap-1.5 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-brand-zebra",
         active ? "text-brand-purple" : "text-brand-ink/70"
       )}
     >
@@ -228,21 +236,16 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
   const [priorityFilter, setPriorityFilter] = React.useState<string>("all");
   const [typeFilter, setTypeFilter] = React.useState<string>("all");
   const [assigneeFilter, setAssigneeFilter] = React.useState<string>("all");
-  const [showClosed, setShowClosed] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(25);
-  const [sortKey, setSortKey] = React.useState<SortKey>("submittedAt");
-  const [sortDir, setSortDir] = React.useState<SortDir>("desc");
+  const [sortKey, setSortKey] = React.useState<SortKey>("dueDate");
+  const [sortDir, setSortDir] = React.useState<SortDir>("asc");
   const [page, setPage] = React.useState(1);
-  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
-  const [busyStatus, setBusyStatus] = React.useState<number | null>(null);
-  const [statusError, setStatusError] = React.useState<{
-    id: number;
-    message: string;
-  } | null>(null);
 
   const query = search.trim().toLowerCase();
 
   const filtered = React.useMemo(() => {
+    const showingClosed =
+      statusFilter === "Completed" || statusFilter === "Rejected";
     return requests.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (priorityFilter !== "all" && r.priority !== priorityFilter)
@@ -250,7 +253,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       if (typeFilter !== "all" && r.projectType !== typeFilter) return false;
       if (assigneeFilter !== "all" && r.assignee !== assigneeFilter)
         return false;
-      if (!showClosed && CLOSED_STATUSES.includes(r.status as typeof CLOSED_STATUSES[number]))
+      if (!showingClosed && CLOSED_STATUSES.includes(r.status as typeof CLOSED_STATUSES[number]))
         return false;
       if (query) {
         const hay = [
@@ -267,7 +270,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       }
       return true;
     });
-  }, [requests, statusFilter, priorityFilter, typeFilter, assigneeFilter, showClosed, query]);
+  }, [requests, statusFilter, priorityFilter, typeFilter, assigneeFilter, query]);
 
   const sorted = React.useMemo(
     () => sortRequests(filtered, sortKey, sortDir),
@@ -285,7 +288,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, priorityFilter, typeFilter, assigneeFilter, showClosed, pageSize, search]);
+  }, [statusFilter, priorityFilter, typeFilter, assigneeFilter, pageSize, search]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -296,70 +299,12 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
     }
   }
 
-  function toggleSelect(id: number) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    const pageIds = pageRows.map((r) => r.id);
-    const allSelected = pageIds.every((id) => selectedIds.has(id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      pageIds.forEach((id) => {
-        if (allSelected) next.delete(id);
-        else next.add(id);
-      });
-      return next;
-    });
-  }
-
-  async function handleStatusChange(request: AdminRequest, next: RequestStatus) {
-    setStatusError(null);
-    const validation = validateStatusTransition(request.status, next);
-    if (!validation.ok) {
-      setStatusError({ id: request.id, message: validation.error });
-      return;
-    }
-    setBusyStatus(request.id);
-    try {
-      const response = await fetch(`/api/admin/requests/${request.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setStatusError({
-          id: request.id,
-          message: data.error || `Update failed (${response.status})`,
-        });
-        return;
-      }
-      setRequests((prev) =>
-        prev.map((r) => (r.id === request.id ? { ...r, status: next } : r))
-      );
-    } catch (err) {
-      setStatusError({
-        id: request.id,
-        message: err instanceof Error ? err.message : "Network error",
-      });
-    } finally {
-      setBusyStatus(null);
-    }
-  }
-
   function clearFilters() {
     setSearch("");
     setStatusFilter("all");
     setPriorityFilter("all");
     setTypeFilter("all");
     setAssigneeFilter("all");
-    setShowClosed(false);
   }
 
   const hasFilters =
@@ -367,8 +312,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
     statusFilter !== "all" ||
     priorityFilter !== "all" ||
     typeFilter !== "all" ||
-    assigneeFilter !== "all" ||
-    showClosed;
+    assigneeFilter !== "all";
 
   return (
     <div className="space-y-4">
@@ -418,15 +362,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             options={ASSIGNEES}
             onChange={setAssigneeFilter}
           />
-          <label className="flex items-center gap-2 text-sm text-brand-ink/80 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-brand-ink/30 text-brand-purple focus:ring-brand-purple"
-              checked={showClosed}
-              onChange={(e) => setShowClosed(e.target.checked)}
-            />
-            Show completed/rejected
-          </label>
           {hasFilters && (
             <Button
               variant="ghost"
@@ -442,22 +377,10 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
 
       <div className="rounded-lg border border-brand-zebra bg-white shadow-sm overflow-hidden">
         {/* Desktop table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-sm">
+        <div className="hidden md:block">
+          <table className="w-full text-sm">
             <thead className="bg-brand-zebra border-b border-brand-zebra">
               <tr>
-                <th className="w-10 px-3 py-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-brand-ink/30 text-brand-purple focus:ring-brand-purple"
-                    checked={
-                      pageRows.length > 0 &&
-                      pageRows.every((r) => selectedIds.has(r.id))
-                    }
-                    onChange={toggleSelectAll}
-                    aria-label="Select all requests on page"
-                  />
-                </th>
                 <th className="px-0 py-0">
                   <HeaderCell
                     label="Project Title"
@@ -521,105 +444,53 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     onSort={handleSort}
                   />
                 </th>
-                <th className="px-0 py-0">
-                  <HeaderCell
-                    label="Submitted"
-                    sortKey="submittedAt"
-                    currentKey={sortKey}
-                    currentDir={sortDir}
-                    onSort={handleSort}
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-brand-ink/70">
-                  Actions
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-zebra">
               {pageRows.map((request) => {
+                const due = request.dueDate ?? request.desiredDeadline;
                 return (
                   <tr
                     key={request.id}
-                    className={cn(
-                      "bg-white hover:bg-brand-zebra/60 transition-colors",
-                      selectedIds.has(request.id) && "bg-brand-purple/5"
-                    )}
+                    className="bg-white hover:bg-brand-zebra/60 transition-colors cursor-pointer"
                   >
                     <td className="px-3 py-3">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-brand-ink/30 text-brand-purple focus:ring-brand-purple"
-                        checked={selectedIds.has(request.id)}
-                        onChange={() => toggleSelect(request.id)}
-                        aria-label={`Select request ${request.projectTitle}`}
-                      />
+                      <Link
+                        href={`/dashboard/requests/${request.id}`}
+                        className="block font-medium text-brand-ink hover:text-brand-purple"
+                      >
+                        <div className="truncate max-w-[260px]" title={request.projectTitle}>
+                          {request.projectTitle}
+                        </div>
+                        <div className="text-xs text-brand-ink/50 mt-0.5">
+                          {request.publicReference}
+                        </div>
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 font-medium text-brand-ink max-w-[260px]">
-                      <div className="truncate" title={request.projectTitle}>
-                        {request.projectTitle}
-                      </div>
-                      <div className="text-xs text-brand-ink/50 mt-0.5">
-                        {request.publicReference}
-                      </div>
+                    <td className="px-3 py-3 font-medium text-brand-ink">
+                      {request.fullName}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-brand-ink">
-                        {request.fullName}
-                      </div>
-                      <div className="text-xs text-brand-ink/60">
-                        {request.email}
-                      </div>
+                    <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
+                      {request.projectType}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge>{request.projectType}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <Badge className={priorityClasses(request.priority)}>
                         {request.priority}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <Badge className={statusClasses(request.status)}>
                         {request.status}
                       </Badge>
-                      {statusError?.id === request.id && (
-                        <span
-                          className="text-xs text-red-600 inline-flex items-center gap-1"
-                          title={statusError.message}
-                        >
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          <span className="max-w-[160px] truncate">
-                            {statusError.message}
-                          </span>
-                        </span>
-                      )}
                     </td>
-                    <td className="px-4 py-3 text-brand-ink/80 whitespace-nowrap">
+                    <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
                       {request.assignee || "—"}
                     </td>
-                    <td className="px-4 py-3 text-brand-ink/80 whitespace-nowrap">
-                      {formatDate(request.dueDate ?? request.desiredDeadline)}
-                    </td>
-                    <td className="px-4 py-3 text-brand-ink/80 whitespace-nowrap">
-                      {formatDate(request.submittedAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/dashboard/requests/${request.id}`}
-                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium bg-brand-zebra text-brand-ink hover:bg-brand-purple/10 hover:text-brand-purple transition-colors"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </Link>
-                        <InlineStatusSelect
-                          value={request.status}
-                          disabled={busyStatus === request.id}
-                          onChange={(next) =>
-                            handleStatusChange(request, next)
-                          }
-                        />
-                      </div>
+                    <td className={cn(
+                      "px-3 py-3 whitespace-nowrap",
+                      isOverdue(due) ? "text-red-600 bg-red-50 font-semibold" : "text-brand-ink/80"
+                    )}>
+                      {formatDate(due)}
                     </td>
                   </tr>
                 );
@@ -631,30 +502,19 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-brand-zebra">
           {pageRows.map((request) => {
+            const due = request.dueDate ?? request.desiredDeadline;
             return (
-              <div
+              <Link
                 key={request.id}
-                className={cn(
-                  "p-4 space-y-3 bg-white",
-                  selectedIds.has(request.id) && "bg-brand-purple/5"
-                )}
+                href={`/dashboard/requests/${request.id}`}
+                className="block p-4 space-y-3 bg-white hover:bg-brand-zebra/60"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-brand-ink/30 text-brand-purple focus:ring-brand-purple"
-                      checked={selectedIds.has(request.id)}
-                      onChange={() => toggleSelect(request.id)}
-                    />
-                    <div className="min-w-0">
-                      <div className="font-semibold text-brand-ink break-words">
-                        {request.projectTitle}
-                      </div>
-                      <div className="text-xs text-brand-ink/50">
-                        {request.publicReference}
-                      </div>
-                    </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-brand-ink break-words">
+                    {request.projectTitle}
+                  </div>
+                  <div className="text-xs text-brand-ink/50">
+                    {request.publicReference}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -663,13 +523,10 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     <div className="font-medium text-brand-ink truncate">
                       {request.fullName}
                     </div>
-                    <div className="text-xs text-brand-ink/60 truncate">
-                      {request.email}
-                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Type</div>
-                    <Badge>{request.projectType}</Badge>
+                    <div className="text-brand-ink/80">{request.projectType}</div>
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Priority</div>
@@ -679,17 +536,9 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Status</div>
-                    <div className="flex flex-col gap-1">
-                      <Badge className={statusClasses(request.status)}>
-                        {request.status}
-                      </Badge>
-                      {statusError?.id === request.id && (
-                        <span className="text-xs text-red-600 inline-flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          <span>{statusError.message}</span>
-                        </span>
-                      )}
-                    </div>
+                    <Badge className={statusClasses(request.status)}>
+                      {request.status}
+                    </Badge>
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Assignee</div>
@@ -697,31 +546,14 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                   </div>
                   <div>
                     <div className="text-xs text-brand-ink/50">Due</div>
-                    <div className="text-brand-ink/80">
-                      {formatDate(request.dueDate ?? request.desiredDeadline)}
+                    <div className={cn(
+                      isOverdue(due) ? "text-red-600 font-semibold" : "text-brand-ink/80"
+                    )}>
+                      {formatDate(due)}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <div className="text-xs text-brand-ink/50">
-                    Submitted {formatDate(request.submittedAt)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/dashboard/requests/${request.id}`}
-                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium bg-brand-zebra text-brand-ink hover:bg-brand-purple/10 hover:text-brand-purple transition-colors"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      View
-                    </Link>
-                    <InlineStatusSelect
-                      value={request.status}
-                      disabled={busyStatus === request.id}
-                      onChange={(next) => handleStatusChange(request, next)}
-                    />
-                  </div>
-                </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -730,7 +562,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           <div className="p-8 text-center text-brand-ink/60">
             {hasFilters
               ? "No requests match the current filters."
-              : "No requests yet."}
+              : "No open requests yet."}
           </div>
         )}
       </div>
@@ -857,45 +689,6 @@ function FilterSelect({
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-function InlineStatusSelect({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: RequestStatus;
-  disabled?: boolean;
-  onChange: (next: RequestStatus) => void;
-}) {
-  return (
-    <Select
-      value={value}
-      disabled={disabled}
-      onValueChange={(v) => onChange(v as RequestStatus)}
-    >
-      <SelectTrigger
-        className={cn(
-          "h-8 w-[120px] text-xs border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple",
-          disabled && "opacity-60 cursor-not-allowed"
-        )}
-        aria-label="Edit status"
-      >
-        <SelectValue placeholder="Status" />
-      </SelectTrigger>
-      <SelectContent className="bg-white border-brand-zebra">
-        {STATUSES.map((s) => (
-          <SelectItem
-            key={s}
-            value={s}
-            className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-          >
-            {s}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }
 

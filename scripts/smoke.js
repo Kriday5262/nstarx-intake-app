@@ -39,7 +39,7 @@ async function main() {
       publicReference: `NS-${year}-${suffix}`,
       fullName: "Test User",
       email: "test@example.com",
-      projectType: "Website Work",
+      projectType: "Website",
       brandingDirection: "NStarX",
       projectTitle: "Smoke test request",
       description: "Round-trip Drizzle query verification with current schema.",

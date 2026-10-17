@@ -53,7 +53,7 @@ async function main() {
   const form = new FormData();
   form.append("fullName", "Deployed App Test");
   form.append("email", "deployed@test.com");
-  form.append("projectType", "Website Work");
+  form.append("projectType", "Website");
   form.append("brandingDirection", "NStarX");
   form.append("projectTitle", "Deployed intake test");
   form.append("description", "This is a test submission sent to the deployed Dockerized NStarX Intake app. It has enough characters to pass validation.");

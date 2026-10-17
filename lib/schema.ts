@@ -11,10 +11,12 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const projectTypeEnum = pgEnum("project_type", [
-  "Deck Redesign",
-  "Document Branding",
-  "Video Creation",
-  "Website Work",
+  "Presentation",
+  "Document",
+  "Video",
+  "Website",
+  "Graphics",
+  "UI/UX",
   "Other",
 ]);
 
@@ -35,9 +37,9 @@ export const priorityEnum = pgEnum("priority", [
 
 export const statusEnum = pgEnum("status", [
   "Submitted",
-  "In Review",
-  "Planned",
+  "Not Started",
   "In Progress",
+  "In Review",
   "Completed",
   "Rejected",
 ]);

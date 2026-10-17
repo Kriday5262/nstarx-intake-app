@@ -25,7 +25,7 @@ const ALLOWED_MIME_TYPES = [
 const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required.").max(255, "Too long."),
   email: z.string().min(1, "Email is required.").email("Please enter a valid email.").max(255, "Too long."),
-  projectType: z.enum(["Deck Redesign", "Document Branding", "Video Creation", "Website Work", "Other"]),
+  projectType: z.enum(["Presentation", "Document", "Video", "Website", "Graphics", "UI/UX", "Other"]),
   brandingDirection: z.enum(["NStarX", "SHI", "NStarX + SHI", "Not sure", "Other"]),
   projectTitle: z.string().min(1, "Project title is required.").max(500, "Too long."),
   description: z.string().min(50, "Description must be at least 50 characters.").max(5000, "Description must be 5000 characters or less."),
