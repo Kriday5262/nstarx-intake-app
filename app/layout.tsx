@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 // Favicon assets are vendored into public/ and served same-origin (see
@@ -7,6 +7,13 @@ import "./globals.css";
 // their favicon cache by exact URL, so bumping it forces a refetch after the
 // icon changes instead of reusing a stale "no favicon" result.
 const ICON_VERSION = "3";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
 
 export const metadata: Metadata = {
   title: "NStarX Project Intake System",

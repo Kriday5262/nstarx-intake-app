@@ -411,8 +411,8 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <Link
             href="/dashboard/requests"
             className="inline-flex items-center gap-1 text-sm text-brand-purple hover:text-brand-purple-dark hover:underline mb-2"
@@ -427,7 +427,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
             {requestData.publicReference} · Submitted {formatDate(requestData.submittedAt)}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -439,7 +439,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </Button>
           <span
             className={cn(
-              "inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium",
+              "inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium",
               statusClasses(requestData.status)
             )}
           >
@@ -447,7 +447,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </span>
           <span
             className={cn(
-              "inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium",
+              "inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium",
               priorityClasses(requestData.priority)
             )}
           >
@@ -477,10 +477,10 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                         href={requestData.driveUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-brand-purple hover:underline"
+                        className="inline-flex items-center gap-1 text-brand-purple hover:underline break-all"
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        {requestData.driveUrl}
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        <span className="break-all">{requestData.driveUrl}</span>
                       </a>
                     }
                   />
@@ -529,7 +529,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                     <a
                       href={`/api/admin/requests/${requestData.id}/attachments/${a.id}`}
                       download={a.originalFilename}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium bg-brand-zebra text-brand-ink hover:bg-brand-purple/10 hover:text-brand-purple transition-colors shrink-0"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-brand-zebra text-brand-ink hover:bg-brand-purple/10 hover:text-brand-purple transition-colors shrink-0 w-full sm:w-auto min-h-11"
                     >
                       <Download className="h-4 w-4" />
                       Download
@@ -546,7 +546,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               <MessageSquare className="h-4 w-4" />
               Comments
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[24rem] overflow-y-auto pr-1">
               {commentsLoading ? (
                 <p className="text-sm text-brand-ink/50">Loading comments…</p>
               ) : comments.length === 0 ? (
@@ -555,8 +555,8 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 comments.map((c) => (
                   <div key={c.id} className="rounded-md bg-brand-canvas p-3 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-brand-ink">{c.actorName || c.actorEmail}</span>
-                      <span className="text-xs text-brand-ink/50">{relativeTime(c.createdAt)}</span>
+                      <span className="text-sm font-bold text-brand-ink truncate">{c.actorName || c.actorEmail}</span>
+                      <span className="text-xs text-brand-ink/50 shrink-0">{relativeTime(c.createdAt)}</span>
                     </div>
                     <p className="text-sm text-brand-ink/90 whitespace-pre-wrap">{c.content}</p>
                   </div>
@@ -599,17 +599,17 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
             ) : activity.length === 0 ? (
               <p className="text-sm text-brand-ink/60">No activity yet.</p>
             ) : (
-              <ul className="space-y-4">
+              <ul className="space-y-4 max-h-[24rem] overflow-y-auto pr-1">
                 {activity.map((entry) => (
                   <li key={entry.id} className="flex gap-3 text-sm">
                     <div className="mt-1 h-2 w-2 rounded-full bg-brand-purple shrink-0" />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="text-brand-ink">
                         <span className="font-bold">{entry.actorName || entry.actorEmail}</span>{" "}
                         changed{" "}
                         <span className="font-medium">{fieldLabel(entry.field)}</span>
                       </p>
-                      <p className="text-brand-ink/70 mt-0.5">
+                      <p className="text-brand-ink/70 mt-0.5 break-words">
                         {formatActivityValue(entry.field, entry.oldValue)} →{" "}
                         {formatActivityValue(entry.field, entry.newValue)}
                       </p>
@@ -851,7 +851,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           if (!open) setDeleteError(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-5">
           <DialogHeader>
             <DialogTitle className="text-brand-ink">Delete request?</DialogTitle>
             <DialogDescription className="text-brand-ink/70">
@@ -874,6 +874,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 setDeleteOpen(false);
                 setDeleteError(null);
               }}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -881,6 +882,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               variant="destructive"
               onClick={deleteRequest}
               disabled={deleteBusy}
+              className="w-full sm:w-auto"
             >
               {deleteBusy ? "Deleting…" : "Delete"}
             </Button>

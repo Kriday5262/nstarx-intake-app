@@ -61,6 +61,14 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      minHeight: {
+        9: "2.25rem",
+        11: "2.75rem",
+        12: "3rem",
+      },
+      minWidth: {
+        11: "2.75rem",
+      },
       fontFamily: {
         heading: ["var(--font-montserrat)", "Montserrat", "sans-serif"],
         body: ["var(--font-nunito)", "Nunito Sans", "sans-serif"],

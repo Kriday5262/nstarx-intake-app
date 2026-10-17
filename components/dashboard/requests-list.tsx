@@ -12,6 +12,7 @@ import {
   ChevronsRight,
   Search,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -223,6 +224,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
   const [sortKey, setSortKey] = React.useState<SortKey>("dueDate");
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
   const [page, setPage] = React.useState(1);
+  const [showFilters, setShowFilters] = React.useState(false);
 
   const query = search.trim().toLowerCase();
 
@@ -313,14 +315,35 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-ink/40 hover:text-brand-ink"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-ink/40 hover:text-brand-ink min-h-11 min-w-11 inline-flex items-center justify-center"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="flex items-center gap-2 md:hidden">
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters((v) => !v)}
+            className="flex-1 border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple min-h-11"
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-1.5" />
+            {showFilters ? "Hide filters" : "Filters"}
+            {hasFilters && <span className="ml-1.5 inline-flex h-2 w-2 rounded-full bg-brand-purple" />}
+          </Button>
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="text-brand-purple hover:text-brand-purple-dark hover:bg-brand-purple/10 min-h-11"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+
+        <div className="hidden md:flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <FilterSelect
             label="Status"
             value={statusFilter}
@@ -350,13 +373,43 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="text-brand-purple hover:text-brand-purple-dark hover:bg-brand-purple/10"
+              className="text-brand-purple hover:text-brand-purple-dark hover:bg-brand-purple/10 min-h-11 md:min-h-9"
             >
               Clear filters
             </Button>
           )}
         </div>
       </div>
+
+      {/* Mobile filter panel */}
+      {showFilters && (
+        <div className="md:hidden rounded-lg border border-brand-zebra bg-white p-4 space-y-3 shadow-sm">
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            options={STATUSES}
+            onChange={setStatusFilter}
+          />
+          <FilterSelect
+            label="Priority"
+            value={priorityFilter}
+            options={PRIORITIES}
+            onChange={setPriorityFilter}
+          />
+          <FilterSelect
+            label="Project Type"
+            value={typeFilter}
+            options={PROJECT_TYPES}
+            onChange={setTypeFilter}
+          />
+          <FilterSelect
+            label="Assignee"
+            value={assigneeFilter}
+            options={ASSIGNEES}
+            onChange={setAssigneeFilter}
+          />
+        </div>
+      )}
 
       <div className="rounded-lg border border-brand-zebra bg-white shadow-sm overflow-hidden">
         {/* Desktop table */}
@@ -493,11 +546,12 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
         <div className="md:hidden divide-y divide-brand-zebra">
           {pageRows.map((request) => {
             const due = request.dueDate ?? request.desiredDeadline;
+            const overdue = isOverdue(due);
             return (
               <Link
                 key={request.id}
                 href={`/dashboard/requests/${request.id}`}
-                className="block p-4 space-y-3 bg-white hover:bg-brand-zebra/60"
+                className="block p-4 space-y-3 bg-white hover:bg-brand-zebra/60 active:bg-brand-zebra"
               >
                 <div className="min-w-0">
                   <div className="font-semibold text-brand-ink break-words">
@@ -507,37 +561,47 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     {request.publicReference}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Requester</div>
-                    <div className="font-medium text-brand-ink truncate">
-                      {request.fullName}
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs text-brand-ink/50">Requester</div>
+                      <div className="font-medium text-brand-ink truncate">
+                        {request.fullName}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs text-brand-ink/50">Type</div>
+                      <div className="text-brand-ink/80">{request.projectType}</div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Type</div>
-                    <div className="text-brand-ink/80">{request.projectType}</div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-brand-ink/50">Priority</div>
+                      <Badge className={priorityClasses(request.priority)}>
+                        {request.priority}
+                      </Badge>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs text-brand-ink/50">Status</div>
+                      <div className="text-brand-ink/80">{request.status}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Priority</div>
-                    <Badge className={priorityClasses(request.priority)}>
-                      {request.priority}
-                    </Badge>
-                  </div>
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Status</div>
-                    <div className="text-brand-ink/80">{request.status}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Assignee</div>
-                    <div className="text-brand-ink/80">{request.assignee || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-brand-ink/50">Due</div>
-                    <div className={cn(
-                      isOverdue(due) ? "text-red-600 font-semibold" : "text-brand-ink/80"
-                    )}>
-                      {formatDate(due)}
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-brand-ink/50">Assignee</div>
+                      <div className="text-brand-ink/80">{request.assignee || "—"}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xs text-brand-ink/50">Due</div>
+                      <div className={cn(
+                        overdue ? "text-red-600 font-semibold" : "text-brand-ink/80"
+                      )}>
+                        {overdue && <span className="inline-flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+                          <span>Overdue</span>
+                        </span>}
+                        {" "}{formatDate(due)}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -556,8 +620,8 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4 text-sm text-brand-ink/70">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-brand-ink/70">
           <span>
             Showing {sorted.length === 0 ? 0 : startIndex + 1}–
             {Math.min(startIndex + pageSize, sorted.length)} of {sorted.length}<span className="sr-only"> results</span>{" "}
@@ -573,7 +637,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
               value={String(pageSize)}
               onValueChange={(v) => setPageSize(Number(v))}
             >
-              <SelectTrigger id="page-size" className="h-8 w-[70px] bg-white border-brand-zebra focus:ring-brand-purple">
+              <SelectTrigger id="page-size" className="h-11 w-[80px] bg-white border-brand-zebra focus:ring-brand-purple">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border-brand-zebra">
@@ -594,7 +658,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-11 w-11"
             onClick={() => setPage(1)}
             disabled={safePage <= 1}
             aria-label="First page"
@@ -604,7 +668,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-11 w-11"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={safePage <= 1}
             aria-label="Previous page"
@@ -617,7 +681,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-11 w-11"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={safePage >= totalPages}
             aria-label="Next page"
@@ -627,7 +691,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-11 w-11"
             onClick={() => setPage(totalPages)}
             disabled={safePage >= totalPages}
             aria-label="Last page"
@@ -690,7 +754,7 @@ function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
         className
       )}
     >
