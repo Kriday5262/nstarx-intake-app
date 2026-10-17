@@ -7,6 +7,7 @@ import { VALID_STATUSES } from "@/lib/status-workflow";
 import type { RequestStatus } from "@/lib/status-workflow";
 import { requireCurrentAdmin } from "@/lib/session";
 import { sendCommentNotification } from "@/lib/email";
+import { env } from "@/lib/env";
 
 const priorities = ["Low", "Medium", "High", "Urgent"] as const;
 const assignees = ["Shantanu", "Sujay"] as const;
@@ -391,7 +392,7 @@ export async function GET_ACTIVITY(
     entries: rows.map((r) => ({
       id: r.id,
       actorEmail: r.actorEmail,
-      actorName: r.actorName,
+      actorName: env.displayName(r.actorName ?? "", r.actorEmail),
       field: r.field,
       oldValue: r.oldValue,
       newValue: r.newValue,

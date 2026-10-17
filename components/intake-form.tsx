@@ -281,7 +281,11 @@ export default function IntakeForm() {
               <AlertCircle className="h-4 w-4 shrink-0" />
               {serverErrors.brandingDirection}
             </p>
-          ) : null}
+          ) : (
+            <p className="text-sm text-brand-ink/60">
+              If there are any specific requirements, please include them in the Project Description below.
+            </p>
+          )}
         </div>
       </div>
 

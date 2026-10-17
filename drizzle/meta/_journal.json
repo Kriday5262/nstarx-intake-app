@@ -50,6 +50,20 @@
       "when": 1792213000000,
       "tag": "0006_round_3",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792223500000,
+      "tag": "0007_backfill_activity_actor_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792223600000,
+      "tag": "0008_purge_test_requests",
+      "breakpoints": true
     }
   ]
 }

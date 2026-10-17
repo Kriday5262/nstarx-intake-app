@@ -40,9 +40,22 @@ export const env = {
     if (!value) return null;
     return parseAddressList(value)[0] ?? null;
   },
+  /**
+   * Fallback for historical activity rows that were written before
+   * actorName was populated: derive a display name from the email local
+   * part so old entries do not show raw addresses.
+   */
   adminNotifyEmails: () => {
     const raw = process.env.ADMIN_NOTIFY_EMAILS ?? PLACEHOLDER_RECIPIENT;
     return parseAddressList(raw);
+  },
+  displayName: (name: string, email: string): string => {
+    if (name && name.trim()) return name.trim();
+    const local = email.split("@")[0];
+    if (!local) return email;
+    return local
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   },
   assigneeEmail: (assignee: string): string | undefined => {
     const map: Record<string, string | undefined> = {

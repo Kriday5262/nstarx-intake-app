@@ -8,6 +8,8 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
+  if (!open) return null
+
   return (
     <div
       role="presentation"
@@ -21,7 +23,11 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         onClick={() => onOpenChange(false)}
         aria-hidden="true"
       />
-      <div className="relative z-10 w-full max-w-md rounded-lg border bg-white p-6 shadow-lg">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative z-10 w-full max-w-md rounded-lg border bg-white p-6 shadow-lg"
+      >
         {children}
       </div>
     </div>

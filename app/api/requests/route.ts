@@ -158,6 +158,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     await db.insert(activityLog).values({
       requestId: requestRow.id,
       actorEmail: "system",
+      actorName: "System",
       field: "status",
       oldValue: null,
       newValue: "Submitted",

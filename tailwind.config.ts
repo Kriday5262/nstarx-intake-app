@@ -20,6 +20,7 @@ const config: Config = {
           amber: "#E69138",
           white: "#FFFFFF",
           zebra: "#F4F6F9",
+          canvas: "#F4F6F9",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

@@ -36,6 +36,9 @@ services:
       # NStarX staff mailbox receives test/dev notification email.
       ASSIGNEE_SHANTANU_EMAIL: shantanu@kamkazi.com
       ASSIGNEE_SUJAY_EMAIL: shantanu@kamkazi.com
+      # Duplicate admin notify list ensures comment/submission notifications
+      # are sent to both Shantanu and Sujay placeholders during testing.
+      ADMIN_NOTIFY_EMAILS: shantanu@kamkazi.com, shantanu@kamkazi.com
     volumes:
       - /mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:/mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:rw
     healthcheck:
