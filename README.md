@@ -117,6 +117,45 @@ printf 'GET /login HTTP/1.1\r\nHost: nstarx-intake.kamkazi.com\r\nConnection: cl
 # should print: HTTP/1.1 200 OK
 ```
 
+## Email notifications
+
+The app sends four kinds of email through SendGrid (`lib/email.ts`):
+
+| Trigger | Recipients | Template |
+| --- | --- | --- |
+| New submission | `ADMIN_NOTIFY_EMAILS` | `renderAdminNotificationEmail` |
+| New submission | the submitter's address | `renderSubmitterConfirmationEmail` |
+| Request assigned | the assignee's mapped address | inline assignee template |
+| New comment | `ADMIN_NOTIFY_EMAILS` | inline comment template |
+
+Configuration (`.env`):
+
+- `SENDGRID_API_KEY` — required. If it is empty the app logs
+  `[email] EMAIL DISABLED — SENDGRID_API_KEY is empty ...` and sends nothing.
+  This was the original cause of "no emails arriving".
+- `SENDGRID_FROM_EMAIL` — sender address (default
+  `noreply@nstarx-intake.kamkazi.com`). It must be a SendGrid-verified sender or
+  on an authenticated sending domain for reliable inbox placement.
+- `EMAIL_REDIRECT_TO` — optional dev/test safety switch. When set, every
+  outbound message goes to that single address and the intended recipients are
+  recorded in the subject and body. Leave it **empty** in production so
+  submitters receive their own confirmations.
+- `ADMIN_NOTIFY_EMAILS` — comma-separated admin recipients. Test/dev
+  deployments must only list the placeholder recipient `shantanu@kamkazi.com`.
+- `ASSIGNEE_SHANTANU_EMAIL` / `ASSIGNEE_SUJAY_EMAIL` — assignee notification
+  addresses; keep both on the placeholder recipient for test/dev.
+
+Every send logs its outcome to stdout (`docker logs nstarx-intake-app`):
+`[email] admin notification for <ref> accepted by SendGrid for <to> (message-id=...)`
+on success and the SendGrid status/body on failure.
+
+Verify delivery:
+
+```bash
+node scripts/test-email.js             # template + service unit tests (no network)
+node scripts/test-email-delivery.js    # live send through the app's mail module
+```
+
 ## Uploads
 
 Intake attachments are stored under `UPLOAD_DIR` (default

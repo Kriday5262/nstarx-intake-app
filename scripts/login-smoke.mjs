@@ -42,7 +42,7 @@ import { verifySession } from "../lib/session-token.ts";
 
 const ADMIN_EMAILS = [
   "shantanu.chaturvedi@nstarxinc.com",
-  "sujay@nstarxinc.com",
+  "shantanu@kamkazi.com",
 ];
 
 function makeRequest(body) {

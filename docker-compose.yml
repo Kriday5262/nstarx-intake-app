@@ -32,9 +32,9 @@ services:
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: "5434"
       # Assignee notification addresses (override any missing .env entries).
-      # ASSIGNEE_SUJAY_EMAIL is intentionally set to shantanu@kamkazi.com placeholder
-      # so no real sujay@nstarxinc.com address is used in test/dev.
-      ASSIGNEE_SHANTANU_EMAIL: shantanu.chaturvedi@nstarxinc.com
+      # Both intentionally point at the placeholder recipient so no real
+      # NStarX staff mailbox receives test/dev notification email.
+      ASSIGNEE_SHANTANU_EMAIL: shantanu@kamkazi.com
       ASSIGNEE_SUJAY_EMAIL: shantanu@kamkazi.com
     volumes:
       - /mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:/mnt/hikvision/Shantanu/Work/NStarX-Intake-Uploads:rw

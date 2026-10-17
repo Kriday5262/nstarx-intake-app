@@ -45,9 +45,9 @@ echo
 echo "Criterion 2: both seeded admins login + GET /dashboard"
 declare -A ACCOUNTS=(
   ["shantanu.chaturvedi@nstarxinc.com"]="$ADMIN_SHANTANU_PASSWORD"
-  ["sujay@nstarxinc.com"]="$ADMIN_SUJAY_PASSWORD"
+  ["shantanu@kamkazi.com"]="$ADMIN_SUJAY_PASSWORD"
 )
-for EMAIL in "shantanu.chaturvedi@nstarxinc.com" "sujay@nstarxinc.com"; do
+for EMAIL in "shantanu.chaturvedi@nstarxinc.com" "shantanu@kamkazi.com"; do
   PWD=${ACCOUNTS[$EMAIL]}
   JAR=$(mktemp)
   LOGIN=$(curl -sS -b "$JAR" -c "$JAR" -o /dev/null -w "%{http_code}" \

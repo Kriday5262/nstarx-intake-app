@@ -12,6 +12,7 @@
     "db:seed": "node ./scripts/seed.js",
     "db:smoke": "node ./scripts/smoke.js",
     "test:email": "node ./scripts/test-email.js",
+    "test:email:live": "node ./scripts/test-email-delivery.js",
     "test:intake": "node ./scripts/test-intake.js"
   },
   "dependencies": {

@@ -28,14 +28,99 @@ function getClient(): Client {
 }
 
 function logError(context: string, error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
   // eslint-disable-next-line no-console
-  console.error(`[email] ${context}: ${message}`);
+  console.error(`[email] ${context}: ${describeSendGridError(error)}`);
 }
 
 function logWarn(message: string): void {
   // eslint-disable-next-line no-console
   console.warn(`[email] ${message}`);
+}
+
+function logInfo(message: string): void {
+  // eslint-disable-next-line no-console
+  console.info(`[email] ${message}`);
+}
+
+/**
+ * The SendGrid SDK throws errors whose `message` alone is usually just
+ * "Bad Request"; the actionable detail (invalid sender, blocked recipient,
+ * quota) lives in `error.response.body`. Surface both so a failed send is
+ * diagnosable from `docker logs` alone.
+ */
+function describeSendGridError(error: unknown): string {
+  const parts: string[] = [];
+  parts.push(error instanceof Error ? error.message : String(error));
+  const response = (error as { response?: { statusCode?: number; body?: unknown } })
+    .response;
+  if (response && typeof response === "object") {
+    if (response.statusCode) parts.push(`status=${response.statusCode}`);
+    if (response.body) {
+      let body: unknown = response.body;
+      if (typeof body !== "string") {
+        try {
+          body = JSON.stringify(body);
+        } catch {
+          body = String(body);
+        }
+      }
+      parts.push(`body=${String(body).slice(0, 500)}`);
+    }
+  }
+  return parts.join(" | ");
+}
+
+function messageIdOf(result: { headers: unknown } | undefined): string {
+  const headers = result?.headers as Record<string, unknown> | undefined;
+  const raw = headers?.["x-message-id"] ?? headers?.["X-Message-Id"];
+  return typeof raw === "string" ? raw : "unknown";
+}
+
+/** SendGrid accepts a bare address for single-recipient messages. */
+function toField(to: string[]): string | string[] {
+  return to.length === 1 ? to[0] : to;
+}
+
+/**
+ * Applies the optional EMAIL_REDIRECT_TO dev/test switch. Returns the addresses
+ * to actually send to plus the intended recipients when they were overridden.
+ */
+function resolveRecipients(intended: string[]): {
+  to: string[];
+  redirectedFrom: string[] | null;
+} {
+  const clean = intended.map((address) => address.trim()).filter(Boolean);
+  const redirect = env.emailRedirectTo();
+  if (redirect) {
+    return { to: [redirect], redirectedFrom: clean };
+  }
+  return { to: clean, redirectedFrom: null };
+}
+
+function redirectNote(redirectedFrom: string[] | null): string {
+  return redirectedFrom && redirectedFrom.length
+    ? `[TEST — original recipient: ${redirectedFrom.join(", ")}] `
+    : "";
+}
+
+function redirectTextNote(redirectedFrom: string[] | null): string {
+  return redirectedFrom && redirectedFrom.length
+    ? `TEST MODE: this message was redirected to you instead of ${redirectedFrom.join(", ")}.\n\n`
+    : "";
+}
+
+/**
+ * Email is disabled when SENDGRID_API_KEY is unset. The old code only emitted a
+ * warning, so a missing key silently produced no notifications; log the failure
+ * loudly as well so it is visible in `docker logs` and in monitoring.
+ */
+function logDisabled(context: string): void {
+  logWarn(`SendGrid API key not configured; skipping ${context}.`);
+  // eslint-disable-next-line no-console
+  console.error(
+    `[email] EMAIL DISABLED — SENDGRID_API_KEY is empty, so "${context}" was NOT sent. ` +
+      "Set SENDGRID_API_KEY in .env and restart the app container."
+  );
 }
 
 function toSendGridAttachment(attachment: AttachmentRow): {
@@ -58,33 +143,35 @@ export async function sendAdminNotification(
 ): Promise<void> {
   try {
     if (!isEmailConfigured()) {
-      logWarn(
-        "SendGrid API key not configured; skipping admin notification.",
-      );
+      logDisabled("admin notification");
       return;
     }
 
-    const recipients = env.adminNotifyEmails();
-    if (recipients.length === 0) {
+    const { to, redirectedFrom } = resolveRecipients(env.adminNotifyEmails());
+    if (to.length === 0) {
       logWarn("ADMIN_NOTIFY_EMAILS is empty; skipping admin notification.");
       return;
     }
 
-    const { html, text, subject } = renderAdminNotificationEmail(
-      request,
-      attachments,
-    );
+    const rendered = renderAdminNotificationEmail(request, attachments);
 
-    await getClient().sendMultiple({
-      to: recipients,
+    const result = await getClient().sendMultiple({
+      to,
       from: env.sendgridFromEmail(),
-      subject,
-      text,
-      html,
+      subject: `${redirectNote(redirectedFrom)}${rendered.subject}`,
+      text: `${redirectTextNote(redirectedFrom)}${rendered.text}`,
+      html: rendered.html,
       attachments: attachments.map(toSendGridAttachment),
     });
+
+    logInfo(
+      `admin notification for ${request.publicReference} accepted by SendGrid for ${to.join(", ")} (message-id=${messageIdOf(result[0])})`
+    );
   } catch (error) {
-    logError("sendAdminNotification failed", error);
+    logError(
+      `sendAdminNotification failed for ${request.publicReference}`,
+      error
+    );
   }
 }
 
@@ -93,23 +180,34 @@ export async function sendSubmitterConfirmation(
 ): Promise<void> {
   try {
     if (!isEmailConfigured()) {
-      logWarn(
-        "SendGrid API key not configured; skipping submitter confirmation.",
-      );
+      logDisabled("submitter confirmation");
       return;
     }
 
-    const { html, text, subject } = renderSubmitterConfirmationEmail(request);
+    const { to, redirectedFrom } = resolveRecipients([request.email]);
+    if (to.length === 0) {
+      logWarn("Submitter address is missing; skipping confirmation email.");
+      return;
+    }
 
-    await getClient().send({
-      to: request.email,
+    const rendered = renderSubmitterConfirmationEmail(request);
+
+    const result = await getClient().send({
+      to: toField(to),
       from: env.sendgridFromEmail(),
-      subject,
-      text,
-      html,
+      subject: `${redirectNote(redirectedFrom)}${rendered.subject}`,
+      text: `${redirectTextNote(redirectedFrom)}${rendered.text}`,
+      html: rendered.html,
     });
+
+    logInfo(
+      `submitter confirmation for ${request.publicReference} accepted by SendGrid for ${to.join(", ")} (message-id=${messageIdOf(result[0])})`
+    );
   } catch (error) {
-    logError("sendSubmitterConfirmation failed", error);
+    logError(
+      `sendSubmitterConfirmation failed for ${request.publicReference}`,
+      error
+    );
   }
 }
 
@@ -119,7 +217,7 @@ export async function sendAssigneeNotification(
 ): Promise<void> {
   try {
     if (!isEmailConfigured()) {
-      logWarn("SendGrid API key not configured; skipping assignee notification.");
+      logDisabled("assignee notification");
       return;
     }
 
@@ -128,6 +226,8 @@ export async function sendAssigneeNotification(
       logWarn(`No email configured for assignee ${request.assignee}; skipping notification.`);
       return;
     }
+
+    const { to, redirectedFrom } = resolveRecipients([recipient]);
 
     const dashboardUrl = `${env.baseUrl()}/dashboard/requests/${request.id}`;
     const subject = `Assigned: ${request.publicReference} — ${request.projectTitle}`;
@@ -141,15 +241,22 @@ export async function sendAssigneeNotification(
 
     const text = `Hi ${request.assignee},\n\n${actorName} assigned you to ${request.projectTitle} (${request.publicReference}).\n\nOpen in dashboard: ${dashboardUrl}\n`;
 
-    await getClient().send({
-      to: recipient,
+    const result = await getClient().send({
+      to: toField(to),
       from: env.sendgridFromEmail(),
-      subject,
-      text,
+      subject: `${redirectNote(redirectedFrom)}${subject}`,
+      text: `${redirectTextNote(redirectedFrom)}${text}`,
       html,
     });
+
+    logInfo(
+      `assignee notification for ${request.publicReference} accepted by SendGrid for ${to.join(", ")} (message-id=${messageIdOf(result[0])})`
+    );
   } catch (error) {
-    logError("sendAssigneeNotification failed", error);
+    logError(
+      `sendAssigneeNotification failed for ${request.publicReference}`,
+      error
+    );
   }
 }
 
@@ -159,12 +266,12 @@ export async function sendCommentNotification(
 ): Promise<void> {
   try {
     if (!isEmailConfigured()) {
-      logWarn("SendGrid API key not configured; skipping comment notification.");
+      logDisabled("comment notification");
       return;
     }
 
-    const recipients = env.adminNotifyEmails();
-    if (recipients.length === 0) {
+    const { to, redirectedFrom } = resolveRecipients(env.adminNotifyEmails());
+    if (to.length === 0) {
       logWarn("ADMIN_NOTIFY_EMAILS is empty; skipping comment notification.");
       return;
     }
@@ -183,15 +290,22 @@ export async function sendCommentNotification(
 
     const text = `${actor} commented on ${request.projectTitle} (${request.publicReference}):\n\n${preview}${comment.content.length > 200 ? "…" : ""}\n\nView in dashboard: ${dashboardUrl}\n`;
 
-    await getClient().sendMultiple({
-      to: recipients,
+    const result = await getClient().sendMultiple({
+      to,
       from: env.sendgridFromEmail(),
-      subject,
-      text,
+      subject: `${redirectNote(redirectedFrom)}${subject}`,
+      text: `${redirectTextNote(redirectedFrom)}${text}`,
       html,
     });
+
+    logInfo(
+      `comment notification for ${request.publicReference} accepted by SendGrid for ${to.join(", ")} (message-id=${messageIdOf(result[0])})`
+    );
   } catch (error) {
-    logError("sendCommentNotification failed", error);
+    logError(
+      `sendCommentNotification failed for ${request.publicReference}`,
+      error
+    );
   }
 }
 

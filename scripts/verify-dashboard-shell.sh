@@ -45,9 +45,9 @@ echo
 
 echo "Criterion: user dropdown shows session user name/email"
 JAR=$(mktemp)
-login_jar "sujay@nstarxinc.com" "$ADMIN_SUJAY_PASSWORD" "$JAR"
+login_jar "shantanu@kamkazi.com" "$ADMIN_SUJAY_PASSWORD" "$JAR"
 BODY=$(curl -sS -b "$JAR" -c "$JAR" "$BASE_URL/dashboard/settings")
-if echo "$BODY" | grep -qi "sujay" && echo "$BODY" | grep -q "sujay@nstarxinc.com"; then
+if echo "$BODY" | grep -qi "sujay" && echo "$BODY" | grep -q "shantanu@kamkazi.com"; then
   echo "  PASS: dropdown shows name/email for sujay"
   PASS=$((PASS+1))
 else

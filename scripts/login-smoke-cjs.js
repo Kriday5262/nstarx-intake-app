@@ -39,7 +39,7 @@ const { verifyPassword } = require("../lib/password.ts");
 
 const ADMIN_EMAILS = [
   "shantanu.chaturvedi@nstarxinc.com",
-  "sujay@nstarxinc.com",
+  "shantanu@kamkazi.com",
 ];
 
 const pool = new Pool({
