@@ -185,7 +185,7 @@ function HeaderCell({
       type="button"
       onClick={() => onSort(sortKey)}
       className={cn(
-        "group flex w-full items-center gap-1.5 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-brand-zebra",
+        "group flex w-full items-center gap-1.5 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-brand-zebra min-h-11",
         active ? "text-brand-purple" : "text-brand-ink/70"
       )}
     >
@@ -373,7 +373,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="text-brand-purple hover:text-brand-purple-dark hover:bg-brand-purple/10 min-h-11 md:min-h-9"
+              className="text-brand-purple hover:text-brand-purple-dark hover:bg-brand-purple/10 min-h-11 md:min-h-11"
             >
               Clear filters
             </Button>

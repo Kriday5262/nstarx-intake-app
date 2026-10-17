@@ -520,7 +520,7 @@ function DeadlineField({ error }: { error?: string }) {
           variant="outline"
           type="button"
           className={cn(
-            "w-full justify-start text-left font-normal bg-white",
+            "w-full justify-start text-left font-normal bg-white min-h-11",
             !date && "text-brand-ink/50",
             error && "border-brand-amber"
           )}

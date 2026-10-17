@@ -70,7 +70,7 @@ export default function LoginForm({ from }: { from: string }) {
           autoComplete="email"
           placeholder="you@nstarxinc.com"
           required
-          className="h-11"
+          className="min-h-11"
         />
       </div>
 
@@ -83,14 +83,14 @@ export default function LoginForm({ from }: { from: string }) {
           autoComplete="current-password"
           placeholder="••••••••"
           required
-          className="h-11"
+          className="min-h-11"
         />
       </div>
 
       <button
         type="submit"
         disabled={isPending}
-        className="w-full h-11 inline-flex items-center justify-center rounded-md bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-purple-dark disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full min-h-11 inline-flex items-center justify-center rounded-md bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-purple-dark disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {isPending ? "Signing in…" : "Sign in"}
       </button>

@@ -26,6 +26,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="dialog-title"
+        aria-describedby="dialog-desc"
         className="relative z-10 w-full max-w-md rounded-lg border bg-white p-6 shadow-lg"
       >
         {children}
@@ -39,11 +41,11 @@ export function DialogHeader({ children, className }: { children: React.ReactNod
 }
 
 export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={cn("text-lg font-semibold", className)}>{children}</h2>
+  return <h2 id="dialog-title" className={cn("text-lg font-semibold", className)}>{children}</h2>
 }
 
 export function DialogDescription({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn("text-sm text-muted-foreground", className)}>{children}</p>
+  return <p id="dialog-desc" className={cn("text-sm text-muted-foreground", className)}>{children}</p>
 }
 
 export function DialogContent({ children, className }: { children: React.ReactNode; className?: string }) {

@@ -415,7 +415,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
         <div className="min-w-0">
           <Link
             href="/dashboard/requests"
-            className="inline-flex items-center gap-1 text-sm text-brand-purple hover:text-brand-purple-dark hover:underline mb-2"
+            className="inline-flex items-center gap-1 text-sm text-brand-purple hover:text-brand-purple-dark hover:underline mb-2 min-h-11"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to requests
@@ -430,9 +430,8 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => setDeleteOpen(true)}
-            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 min-h-11"
           >
             <Trash2 className="h-4 w-4 mr-1.5" />
             Delete

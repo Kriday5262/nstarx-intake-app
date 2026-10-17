@@ -58,7 +58,7 @@ export default function SuccessPage({
               ) : null}
               <Button
                 asChild
-                className="bg-brand-purple hover:bg-brand-purple-dark text-white"
+                className="bg-brand-purple hover:bg-brand-purple-dark text-white min-h-11"
               >
                 <Link href="/">Submit another request</Link>
               </Button>

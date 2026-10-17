@@ -28,11 +28,11 @@ function Calendar({
         [UI.Nav]: "space-x-1 flex items-center",
         [UI.PreviousMonthButton]: cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
+          "h-11 w-11 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
         ),
         [UI.NextMonthButton]: cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
+          "h-11 w-11 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
         ),
         [UI.MonthGrid]: "w-full border-collapse space-y-1",
         [UI.Weekdays]: "flex",

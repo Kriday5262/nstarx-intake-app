@@ -46,6 +46,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
+        style={{ minHeight: "44px", ...(size === "icon" ? { minWidth: "44px" } : {}), ...props.style }}
         ref={ref}
         {...props}
       />

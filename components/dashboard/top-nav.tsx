@@ -81,7 +81,7 @@ export function TopNav({ admin }: TopNavProps) {
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <Link href="/dashboard/requests" className="flex items-center gap-2 md:gap-3 min-w-0">
+            <Link href="/dashboard/requests" className="flex items-center gap-2 md:gap-3 min-w-0 min-h-11">
               <Image
                 src="/nstarx-logo-horizontal.png"
                 alt="NStarX"
