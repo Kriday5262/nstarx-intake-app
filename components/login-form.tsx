@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export default function LoginForm({ from }: { from: string }) {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function LoginForm({ from }: { from: string }) {
       {error && (
         <div
           role="alert"
-          className="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700"
+          className="rounded-[4px] bg-red-50 border border-red-100 p-4 text-sm text-red-700"
         >
           {error}
         </div>
@@ -89,13 +90,13 @@ export default function LoginForm({ from }: { from: string }) {
         />
       </div>
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="w-full min-h-11 inline-flex items-center justify-center rounded-md bg-brand-purple px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-purple-dark disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full"
       >
         {isPending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

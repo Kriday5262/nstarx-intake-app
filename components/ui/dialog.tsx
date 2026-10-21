@@ -28,7 +28,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         aria-modal="true"
         aria-labelledby="dialog-title"
         aria-describedby="dialog-desc"
-        className="relative z-10 w-full max-w-md rounded-lg border bg-white p-6 shadow-lg"
+        className="relative z-10 w-full max-w-md rounded-[4px] border bg-white p-6"
       >
         {children}
       </div>

@@ -60,7 +60,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     if (window.innerWidth < 768) onClose();
                   }}
                   className={cn(
-                    "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                    "group flex items-center gap-3 rounded-[4px] px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
                       ? "bg-brand-purple/10 text-brand-purple"
                       : "text-brand-ink/80 hover:bg-brand-zebra hover:text-brand-ink"

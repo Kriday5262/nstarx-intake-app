@@ -1,12 +1,11 @@
 "use client";
 
+import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Settings, Menu, X } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Inbox, Settings as SettingsIcon } from "lucide-react";
+import { Inbox, Settings, ChevronDown, Menu, X } from "lucide-react";
 
 interface DashboardAdmin {
   adminId: number;
@@ -20,18 +19,18 @@ interface TopNavProps {
 
 const navItems = [
   { label: "Requests", href: "/dashboard/requests", icon: Inbox },
-  { label: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function TopNav({ admin }: TopNavProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         dropdownRef.current &&
@@ -74,7 +73,7 @@ export function TopNav({ admin }: TopNavProps) {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((v) => !v)}
-              className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-brand-ink hover:bg-brand-zebra focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple min-h-11 min-w-11"
+              className="md:hidden inline-flex items-center justify-center rounded-[4px] p-2 text-brand-ink hover:bg-brand-zebra focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple-light min-h-11 min-w-11"
               aria-label={isMobileMenuOpen ? "Close navigation" : "Open navigation"}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-dashboard-nav"
@@ -101,7 +100,7 @@ export function TopNav({ admin }: TopNavProps) {
             <button
               type="button"
               onClick={() => setIsDropdownOpen((v) => !v)}
-              className="flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-brand-ink hover:bg-brand-zebra focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple min-h-11"
+              className="flex items-center gap-2 rounded-[4px] px-2 py-2 text-sm font-medium text-brand-ink hover:bg-brand-zebra focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple-light min-h-11"
               aria-haspopup="menu"
               aria-expanded={isDropdownOpen}
             >
@@ -117,7 +116,7 @@ export function TopNav({ admin }: TopNavProps) {
 
             <div
               role="menu"
-              className={`absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none ${
+              className={`absolute right-0 mt-2 w-56 origin-top-right rounded-[4px] bg-white ring-1 ring-black/5 focus:outline-none ${
                 isDropdownOpen ? "block" : "hidden"
               }`}
             >
@@ -139,7 +138,7 @@ export function TopNav({ admin }: TopNavProps) {
                 role="menuitem"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-brand-purple hover:bg-brand-zebra focus:bg-brand-zebra focus:outline-none disabled:opacity-60 min-h-11"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-zebra focus:bg-brand-zebra focus:outline-none disabled:opacity-60 min-h-11"
               >
                 {isLoggingOut ? "Logging out…" : "Log out"}
               </button>
@@ -176,7 +175,7 @@ export function TopNav({ admin }: TopNavProps) {
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "group flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors min-h-11",
+                    "group flex items-center gap-3 rounded-[4px] px-3 py-3 text-sm font-medium transition-colors min-h-11",
                     isActive
                       ? "bg-brand-purple/10 text-brand-purple"
                       : "text-brand-ink/80 hover:bg-brand-zebra hover:text-brand-ink"

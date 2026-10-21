@@ -60,6 +60,14 @@ export function fieldLabel(field: string): string {
       return "Assignee";
     case "driveUrl":
       return "Drive link";
+    case "project_title":
+      return "Project title";
+    case "project_type":
+      return "Project type";
+    case "branding_direction":
+      return "Branding direction";
+    case "description":
+      return "Description";
     default:
       return field.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
   }

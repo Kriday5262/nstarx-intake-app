@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Save, CheckCircle2, AlertCircle, Download, FileText, Paperclip, Calendar as CalendarIcon, MessageSquare, ExternalLink, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle2, AlertCircle, Download, FileText, Paperclip, Calendar as CalendarIcon, MessageSquare, ExternalLink, Trash2, Pencil, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatDateTime, formatFileSize, fieldLabel, relativeTime } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Markdown, MarkdownHint } from "@/components/ui/markdown";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,9 @@ import {
 } from "@/lib/status-workflow";
 
 const PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const;
+const PROJECT_TYPES = ["Presentation", "Document", "Video", "Website", "Graphics", "UI/UX", "Other"] as const;
+const BRANDING_DIRECTIONS = ["NStarX", "SHI", "NStarX + SHI", "Not sure", "Other"] as const;
+const ASSIGNEES = ["Shantanu", "Sujay"] as const;
 
 interface Attachment {
   id: string;
@@ -88,24 +92,24 @@ function statusClasses(status: RequestStatus) {
     case "Submitted":
       return "bg-slate-100 text-slate-700 border-slate-200";
     case "Not Started":
-      return "bg-indigo-100 text-indigo-700 border-indigo-200";
+      return "bg-slate-100 text-slate-700 border-slate-200";
     case "In Progress":
-      return "bg-sky-100 text-sky-700 border-sky-200";
+      return "bg-brand-purple/10 text-brand-purple border-brand-purple/20";
     case "In Review":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      return "bg-amber-100 text-amber-800 border-amber-200";
     case "Completed":
-      return "bg-green-100 text-green-700 border-green-200";
+      return "bg-brand-purple/10 text-brand-purple border-brand-purple/20";
     case "Rejected":
       return "bg-red-100 text-red-700 border-red-200";
     default:
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-slate-100 text-slate-700 border-slate-200";
   }
 }
 
 function priorityClasses(priority: string) {
   switch (priority) {
     case "Low":
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-slate-100 text-slate-700 border-slate-200";
     case "Medium":
       return "bg-blue-100 text-blue-700 border-blue-200";
     case "High":
@@ -113,7 +117,7 @@ function priorityClasses(priority: string) {
     case "Urgent":
       return "bg-red-100 text-red-700 border-red-200";
     default:
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-slate-100 text-slate-700 border-slate-200";
   }
 }
 
@@ -167,6 +171,35 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleteBusy, setDeleteBusy] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const [editMode, setEditMode] = React.useState(false);
+  const [descriptionPreview, setDescriptionPreview] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [saveMessage, setSaveMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [draft, setDraft] = React.useState<{
+    projectTitle: string;
+    description: string;
+    projectType: string;
+    priority: string;
+    status: RequestStatus;
+    dueDate: string | null;
+    assignee: string;
+    brandingDirection: string;
+    driveUrl: string | null;
+    internalNotes: string;
+  }>({
+    projectTitle: request.projectTitle,
+    description: request.description,
+    projectType: request.projectType,
+    priority: request.priority,
+    status: request.status,
+    dueDate: request.dueDate,
+    assignee: request.assignee,
+    brandingDirection: request.brandingDirection,
+    driveUrl: request.driveUrl,
+    internalNotes: request.internalNotes,
+  });
+
   const router = useRouter();
 
   React.useEffect(() => {
@@ -408,10 +441,89 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
     }
   }
 
-  const isTerminal = false;
+  function startEdit() {
+    setDraft({
+      projectTitle: requestData.projectTitle,
+      description: requestData.description,
+      projectType: requestData.projectType,
+      priority: requestData.priority,
+      status: requestData.status,
+      dueDate: requestData.dueDate,
+      assignee: requestData.assignee,
+      brandingDirection: requestData.brandingDirection,
+      driveUrl: requestData.driveUrl,
+      internalNotes: requestData.internalNotes,
+    });
+    setDescriptionPreview(false);
+    setSaveMessage(null);
+    setEditMode(true);
+  }
+
+  function cancelEdit() {
+    setEditMode(false);
+    setSaveMessage(null);
+    setDescriptionPreview(false);
+  }
+
+  async function saveEdits() {
+    setSaveMessage(null);
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/requests/${requestData.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectTitle: draft.projectTitle,
+          description: draft.description,
+          projectType: draft.projectType,
+          priority: draft.priority,
+          status: draft.status,
+          dueDate: draft.dueDate,
+          assignee: draft.assignee,
+          brandingDirection: draft.brandingDirection,
+          driveUrl: draft.driveUrl,
+          internalNotes: draft.internalNotes,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setSaveMessage({ type: "error", text: data.error || `Save failed (${response.status}).` });
+        return;
+      }
+      setRequestData((prev) => ({
+        ...prev,
+        projectTitle: draft.projectTitle,
+        description: draft.description,
+        projectType: draft.projectType,
+        priority: draft.priority,
+        status: draft.status,
+        dueDate: draft.dueDate,
+        assignee: draft.assignee,
+        brandingDirection: draft.brandingDirection,
+        driveUrl: draft.driveUrl,
+        internalNotes: draft.internalNotes,
+      }));
+      setSelectedStatus(draft.status);
+      setSelectedPriority(draft.priority);
+      setAssignee(draft.assignee);
+      setDueDate(draft.dueDate ? new Date(draft.dueDate) : undefined);
+      setDriveUrl(draft.driveUrl ?? "");
+      setNotes(draft.internalNotes);
+      setSaveMessage({ type: "success", text: "Request updated." });
+      await loadActivity();
+      setTimeout(() => {
+        setSaveMessage(null);
+        setEditMode(false);
+      }, 1500);
+    } catch (err) {
+      setSaveMessage({ type: "error", text: err instanceof Error ? err.message : "Network error." });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <Link
@@ -429,14 +541,6 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setDeleteOpen(true)}
-            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 min-h-11"
-          >
-            <Trash2 className="h-4 w-4 mr-1.5" />
-            Delete
-          </Button>
           <span
             className={cn(
               "inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium",
@@ -453,58 +557,286 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           >
             {requestData.priority}
           </span>
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            className="inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-700 border-slate-200 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Delete
+          </button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
         {/* Main details */}
-        <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5">
-            <h2 className="font-heading text-lg text-brand-ink mb-4">Request details</h2>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <DetailItem label="Requester" value={requestData.fullName} />
-              <DetailItem label="Email" value={requestData.email} />
-              <DetailItem label="Project type" value={requestData.projectType} />
-              {requestData.brandingDirection ? (
-                <DetailItem label="Branding direction" value={requestData.brandingDirection} />
+        <div className="space-y-4 md:space-y-6 lg:col-span-2">
+          <section className="rounded-[4px] border border-brand-zebra bg-white p-4 md:p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="font-heading text-lg text-brand-ink">Request details</h2>
+              {!editMode ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startEdit}
+                  className="min-h-9"
+                >
+                  <Pencil className="h-4 w-4 mr-1.5" />
+                  Edit
+                </Button>
               ) : null}
-              {requestData.driveUrl ? (
-                <div className="sm:col-span-2">
+            </div>
+
+            {!editMode ? (
+              <>
+                <dl className="grid gap-3 md:gap-4 sm:grid-cols-2">
+                  <DetailItem label="Requester" value={requestData.fullName} />
+                  <DetailItem label="Email" value={requestData.email} />
+                  <DetailItem label="Project type" value={requestData.projectType} />
+                  {requestData.brandingDirection ? (
+                    <DetailItem label="Branding direction" value={requestData.brandingDirection} />
+                  ) : null}
+                  {requestData.driveUrl ? (
+                    <div className="sm:col-span-2">
+                      <DetailItem
+                        label="Google Drive link"
+                        value={
+                          <a
+                            href={requestData.driveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-brand-purple hover:underline break-all"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            <span className="break-all">{requestData.driveUrl}</span>
+                          </a>
+                        }
+                      />
+                    </div>
+                  ) : null}
                   <DetailItem
-                    label="Google Drive link"
-                    value={
-                      <a
-                        href={requestData.driveUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-brand-purple hover:underline break-all"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                        <span className="break-all">{requestData.driveUrl}</span>
-                      </a>
-                    }
+                    label="Desired deadline"
+                    value={formatDate(requestData.desiredDeadline)}
+                  />
+                  <DetailItem label="Assignee" value={requestData.assignee} />
+                  <DetailItem label="Submitted" value={formatDateTime(requestData.submittedAt)} />
+                </dl>
+                <div className="mt-4 md:mt-5">
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-brand-ink/60 mb-1">
+                    Description
+                  </dt>
+                  <dd className="text-brand-ink/90 leading-relaxed">
+                    <Markdown>{requestData.description}</Markdown>
+                  </dd>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-projectTitle">Project Title</Label>
+                  <Input
+                    id="edit-projectTitle"
+                    value={draft.projectTitle}
+                    onChange={(e) => setDraft((d) => ({ ...d, projectTitle: e.target.value }))}
+                    className="bg-white"
                   />
                 </div>
-              ) : null}
-              <DetailItem
-                label="Desired deadline"
-                value={formatDate(requestData.desiredDeadline)}
-              />
-              <DetailItem label="Assignee" value={requestData.assignee} />
-              <DetailItem label="Submitted" value={formatDateTime(requestData.submittedAt)} />
-            </dl>
-            <div className="mt-5">
-              <dt className="text-xs font-semibold uppercase tracking-wider text-brand-ink/60 mb-1">
-                Description
-              </dt>
-              <dd className="text-brand-ink/90 whitespace-pre-wrap leading-relaxed">
-                {requestData.description}
-              </dd>
-            </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-projectType">Project Type</Label>
+                    <Select
+                      value={draft.projectType}
+                      onValueChange={(v) => setDraft((d) => ({ ...d, projectType: v }))}
+                    >
+                      <SelectTrigger id="edit-projectType" className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-brand-zebra">
+                        {PROJECT_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-brandingDirection">Branding Direction</Label>
+                    <Select
+                      value={draft.brandingDirection}
+                      onValueChange={(v) => setDraft((d) => ({ ...d, brandingDirection: v }))}
+                    >
+                      <SelectTrigger id="edit-brandingDirection" className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-brand-zebra">
+                        {BRANDING_DIRECTIONS.map((b) => (
+                          <SelectItem key={b} value={b}>{b}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-description">Project Description</Label>
+                    <div className="flex rounded-[4px] border border-brand-zebra overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setDescriptionPreview(false)}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium",
+                          !descriptionPreview ? "bg-brand-gray text-white" : "bg-white text-brand-ink hover:bg-brand-gray-light"
+                        )}
+                      >
+                        Write
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDescriptionPreview(true)}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium",
+                          descriptionPreview ? "bg-brand-gray text-white" : "bg-white text-brand-ink hover:bg-brand-gray-light"
+                        )}
+                      >
+                        <Eye className="h-3 w-3 mr-1 inline" />
+                        Preview
+                      </button>
+                    </div>
+                  </div>
+                  {descriptionPreview ? (
+                    <div className="rounded-[4px] border border-brand-zebra bg-white p-3 min-h-[120px]">
+                      <Markdown>{draft.description}</Markdown>
+                    </div>
+                  ) : (
+                    <Textarea
+                      id="edit-description"
+                      value={draft.description}
+                      onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+                      rows={6}
+                      className="bg-white resize-none"
+                    />
+                  )}
+                  <MarkdownHint />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-priority">Priority</Label>
+                    <Select
+                      value={draft.priority}
+                      onValueChange={(v) => setDraft((d) => ({ ...d, priority: v }))}
+                    >
+                      <SelectTrigger id="edit-priority" className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-brand-zebra">
+                        {PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-status">Status</Label>
+                    <Select
+                      value={draft.status}
+                      onValueChange={(v) => setDraft((d) => ({ ...d, status: v as RequestStatus }))}
+                    >
+                      <SelectTrigger id="edit-status" className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-brand-zebra">
+                        {VALID_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-assignee">Assignee</Label>
+                    <Select
+                      value={draft.assignee}
+                      onValueChange={(v) => setDraft((d) => ({ ...d, assignee: v }))}
+                    >
+                      <SelectTrigger id="edit-assignee" className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-brand-zebra">
+                        {ASSIGNEES.map((a) => (
+                          <SelectItem key={a} value={a}>{a}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Due date</Label>
+                    <EditDueDate
+                      value={draft.dueDate ? new Date(draft.dueDate) : undefined}
+                      onChange={(date) => {
+                        const next = date ? date.toISOString().slice(0, 10) : null;
+                        setDraft((d) => ({ ...d, dueDate: next }));
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-driveUrl">Google Drive link</Label>
+                  <Input
+                    id="edit-driveUrl"
+                    type="url"
+                    value={draft.driveUrl ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, driveUrl: e.target.value || null }))}
+                    placeholder="https://drive.google.com/..."
+                    className="bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-internalNotes">Internal notes</Label>
+                  <Textarea
+                    id="edit-internalNotes"
+                    value={draft.internalNotes}
+                    onChange={(e) => setDraft((d) => ({ ...d, internalNotes: e.target.value }))}
+                    rows={4}
+                    className="bg-white resize-none"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button onClick={saveEdits} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Save className="mr-2 h-4 w-4 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save changes
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={cancelEdit} disabled={saving}>
+                    Cancel
+                  </Button>
+                </div>
+                {saveMessage && (
+                  <MessageBox type={saveMessage.type} text={saveMessage.text} />
+                )}
+              </div>
+            )}
           </section>
 
-          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5">
-            <h2 className="font-heading text-lg text-brand-ink mb-4 inline-flex items-center gap-2">
+          <section className="rounded-[4px] border border-brand-zebra bg-white p-4 md:p-5">
+            <h2 className="font-heading text-lg text-brand-ink mb-3 md:mb-4 inline-flex items-center gap-2">
               <Paperclip className="h-4 w-4" />
               Attachments
             </h2>
@@ -515,7 +847,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 {attachmentsData.map((a) => (
                   <li
                     key={a.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-2.5 md:py-3 first:pt-0 last:pb-0"
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <FileText className="h-5 w-5 text-brand-ink/40 shrink-0 mt-0.5" />
@@ -526,14 +858,21 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                         <p className="text-xs text-brand-ink/60">{formatFileSize(a.sizeBytes)} · {a.mimeType}</p>
                       </div>
                     </div>
-                    <a
-                      href={`/api/admin/requests/${requestData.id}/attachments/${a.id}`}
-                      download={a.originalFilename}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-brand-zebra text-brand-ink hover:bg-brand-purple/10 hover:text-brand-purple transition-colors shrink-0 w-full sm:w-auto min-h-11"
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 w-full sm:w-auto"
                     >
-                      <Download className="h-4 w-4" />
-                      Download
-                    </a>
+                      <a
+                        href={`/api/admin/requests/${requestData.id}/attachments/${a.id}`}
+                        download={a.originalFilename}
+                        className="inline-flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download
+                      </a>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -541,7 +880,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </section>
 
           {/* Comments */}
-          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5 space-y-4">
+          <section className="rounded-[4px] border border-brand-zebra bg-white p-4 md:p-5 space-y-4">
             <h2 className="font-heading text-lg text-brand-ink inline-flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Comments
@@ -553,7 +892,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 <p className="text-sm text-brand-ink/60">No comments yet.</p>
               ) : (
                 comments.map((c) => (
-                  <div key={c.id} className="rounded-md bg-brand-canvas p-3 space-y-1.5">
+                  <div key={c.id} className="rounded-[4px] bg-brand-canvas p-3 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-brand-ink truncate">{c.actorName || c.actorEmail}</span>
                       <span className="text-xs text-brand-ink/50 shrink-0">{relativeTime(c.createdAt)}</span>
@@ -569,12 +908,12 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 onChange={(e) => setCommentDraft(e.target.value)}
                 placeholder="Add a comment…"
                 rows={3}
-                className="bg-white border-brand-zebra focus-visible:ring-brand-purple resize-none"
+                className="bg-white border-brand-zebra focus-visible:ring-brand-purple-light resize-none"
               />
               <Button
                 onClick={postComment}
                 disabled={commentSaving || !commentDraft.trim()}
-                className="w-full bg-brand-purple hover:bg-brand-purple-dark text-white"
+                className="w-full"
               >
                 {commentSaving ? "Posting…" : "Post Comment"}
               </Button>
@@ -584,7 +923,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
             </div>
           </section>
 
-          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5">
+          <section className="rounded-[4px] border border-brand-zebra bg-white p-4 md:p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-heading text-lg text-brand-ink">Activity log</h2>
               {activityLoading && (
@@ -592,7 +931,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               )}
             </div>
             {activityError ? (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
+              <div className="rounded-[4px] bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 {activityError}
               </div>
@@ -625,8 +964,8 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
         </div>
 
         {/* Sidebar controls */}
-        <div className="space-y-6 lg:col-span-1">
-          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5 space-y-5">
+        <div className="space-y-4 md:space-y-6 lg:col-span-1">
+          <section className="rounded-[4px] border border-brand-zebra bg-white p-4 md:p-5 space-y-4 md:space-y-5">
             <h2 className="font-heading text-lg text-brand-ink">Manage request</h2>
 
             {/* Status */}
@@ -642,36 +981,30 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                   updateStatus(v as RequestStatus);
                 }}
               >
-                <SelectTrigger id="status" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
+                <SelectTrigger id="status" className="bg-white border-brand-zebra focus:ring-brand-purple-light hover:border-brand-purple-light data-[state=open]:border-brand-purple-light">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-brand-zebra">
                   {VALID_STATUSES.map((s) => (
-                    <SelectItem
-                      key={s}
-                      value={s}
-                      className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-                    >
-                      {s}
-                    </SelectItem>
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Button
                 onClick={() => updateStatus()}
                 disabled={busyStatus}
-                className="w-full bg-brand-purple hover:bg-brand-purple-dark text-white"
+                className="w-full"
               >
                 {busyStatus ? "Updating…" : "Update Status"}
               </Button>
               {statusError && (
-                <div className="rounded-md bg-red-50 p-2.5 text-sm text-red-700 flex items-start gap-2">
+                <div className="rounded-[4px] bg-red-50 p-2.5 text-sm text-red-700 flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                   {statusError}
                 </div>
               )}
               {statusSuccess && (
-                <div className="rounded-md bg-green-50 p-2.5 text-sm text-green-700 flex items-center gap-2">
+                <div className="rounded-[4px] bg-brand-purple/10 p-2.5 text-sm text-brand-purple flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                   Status updated.
                 </div>
@@ -686,18 +1019,12 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 disabled={prioritySaving}
                 onValueChange={(v) => setSelectedPriority(v)}
               >
-                <SelectTrigger id="priority" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
+                <SelectTrigger id="priority" className="bg-white border-brand-zebra focus:ring-brand-purple-light hover:border-brand-purple-light data-[state=open]:border-brand-purple-light">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-brand-zebra">
                   {PRIORITIES.map((p) => (
-                    <SelectItem
-                      key={p}
-                      value={p}
-                      className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-                    >
-                      {p}
-                    </SelectItem>
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -705,7 +1032,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 onClick={updatePriority}
                 disabled={prioritySaving || selectedPriority === requestData.priority}
                 variant="outline"
-                className="w-full border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple"
+                className="w-full"
               >
                 {prioritySaving ? "Saving…" : "Update Priority"}
               </Button>
@@ -722,29 +1049,20 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                 disabled={assigneeSaving}
                 onValueChange={(v) => setAssignee(v)}
               >
-                <SelectTrigger id="assignee" className="bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
+                <SelectTrigger id="assignee" className="bg-white border-brand-zebra focus:ring-brand-purple-light hover:border-brand-purple-light data-[state=open]:border-brand-purple-light">
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-brand-zebra">
-                  <SelectItem
-                    value="Shantanu"
-                    className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-                  >
-                    Shantanu
-                  </SelectItem>
-                  <SelectItem
-                    value="Sujay"
-                    className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-                  >
-                    Sujay
-                  </SelectItem>
+                  {ASSIGNEES.map((a) => (
+                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button
                 onClick={updateAssignee}
                 disabled={assigneeSaving || assignee === requestData.assignee}
                 variant="outline"
-                className="w-full border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple"
+                className="w-full"
               >
                 {assigneeSaving ? "Saving…" : "Update Assignee"}
               </Button>
@@ -763,14 +1081,14 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                   placeholder="https://drive.google.com/..."
                   value={driveUrl}
                   onChange={(e) => setDriveUrl(e.target.value)}
-                  className="bg-white border-brand-zebra focus-visible:ring-brand-purple"
+                  className="bg-white border-brand-zebra focus-visible:ring-brand-purple-light"
                 />
               </div>
               <Button
                 onClick={updateDriveUrl}
                 disabled={driveUrlSaving || driveUrl.trim() === (requestData.driveUrl ?? "")}
                 variant="outline"
-                className="w-full border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple"
+                className="w-full"
               >
                 {driveUrlSaving ? "Saving…" : "Update Drive Link"}
               </Button>
@@ -789,7 +1107,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
                     variant="outline"
                     disabled={dueDateSaving}
                     className={cn(
-                      "w-full justify-start text-left font-normal border-brand-zebra bg-white hover:bg-brand-purple/10 hover:text-brand-purple",
+                      "w-full justify-start text-left font-normal border-brand-zebra bg-white",
                       !dueDate && "text-brand-ink/50"
                     )}
                   >
@@ -812,19 +1130,19 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
           </section>
 
           {/* Internal notes */}
-          <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5 space-y-3">
+          <section className="rounded-[4px] border border-brand-zebra bg-white p-4 md:p-5 space-y-3">
             <h2 className="font-heading text-lg text-brand-ink">Internal notes</h2>
             <Textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add admin-only notes…"
               rows={6}
-              className="bg-white border-brand-zebra focus-visible:ring-brand-purple resize-none"
+              className="bg-white border-brand-zebra focus-visible:ring-brand-purple-light resize-none"
             />
             <Button
               onClick={saveNotes}
               disabled={notesSaving || notes === requestData.internalNotes}
-              className="w-full bg-brand-purple hover:bg-brand-purple-dark text-white"
+              className="w-full"
             >
               {notesSaving ? (
                 <>
@@ -862,7 +1180,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
             </DialogDescription>
           </DialogHeader>
           {deleteError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
+            <div className="rounded-[4px] bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               {deleteError}
             </div>
@@ -879,7 +1197,6 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
               Cancel
             </Button>
             <Button
-              variant="destructive"
               onClick={deleteRequest}
               disabled={deleteBusy}
               className="w-full sm:w-auto"
@@ -908,8 +1225,8 @@ function MessageBox({ type, text }: { type: "success" | "error"; text: string })
   return (
     <div
       className={cn(
-        "rounded-md p-2.5 text-sm flex items-center gap-2",
-        type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+        "rounded-[4px] p-2.5 text-sm flex items-center gap-2",
+        type === "success" ? "bg-brand-purple/10 text-brand-purple" : "bg-red-50 text-red-700"
       )}
     >
       {type === "success" ? (
@@ -919,5 +1236,42 @@ function MessageBox({ type, text }: { type: "success" | "error"; text: string })
       )}
       {text}
     </div>
+  );
+}
+
+function EditDueDate({
+  value,
+  onChange,
+}: {
+  value: Date | undefined;
+  onChange: (date: Date | undefined) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          type="button"
+          className={cn(
+            "w-full justify-start text-left font-normal border-brand-zebra bg-white",
+            !value && "text-brand-ink/50"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {value ? formatDate(value.toISOString()) : "Pick a date"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value}
+          onSelect={(d) => {
+            onChange(d);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

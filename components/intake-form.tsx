@@ -140,7 +140,7 @@ export default function IntakeForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
       <input type="hidden" name="fileCount" value={files.length} />
 
       {files.map((file, idx) => (
@@ -152,7 +152,7 @@ export default function IntakeForm() {
         />
       ))}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         <div className="space-y-2">
           <Label htmlFor="fullName">Full Name <span className="text-brand-amber">*</span></Label>
           <Input
@@ -198,7 +198,7 @@ export default function IntakeForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         <div className="space-y-2">
           <Label htmlFor="projectType">Project Type <span className="text-brand-amber">*</span></Label>
           <Select name="projectType">
@@ -206,7 +206,7 @@ export default function IntakeForm() {
               id="projectType"
               aria-invalid={Boolean(serverErrors?.projectType)}
               className={cn(
-                "bg-white hover:border-brand-purple data-[state=open]:border-brand-purple",
+                "bg-white hover:border-brand-purple-light data-[state=open]:border-brand-purple-light",
                 serverErrors?.projectType && "border-brand-amber focus-visible:ring-brand-amber"
               )}
             >
@@ -237,43 +237,18 @@ export default function IntakeForm() {
               id="brandingDirection"
               aria-invalid={Boolean(serverErrors?.brandingDirection)}
               className={cn(
-                "bg-white hover:border-brand-purple data-[state=open]:border-brand-purple",
+                "bg-white hover:border-brand-purple-light data-[state=open]:border-brand-purple-light",
                 serverErrors?.brandingDirection && "border-brand-amber focus-visible:ring-brand-amber"
               )}
             >
               <SelectValue placeholder="Select branding direction" />
             </SelectTrigger>
             <SelectContent className="bg-white border-brand-zebra">
-              <SelectItem
-                value="NStarX"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                NStarX
-              </SelectItem>
-              <SelectItem
-                value="SHI"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                SHI
-              </SelectItem>
-              <SelectItem
-                value="NStarX + SHI"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                NStarX + SHI
-              </SelectItem>
-              <SelectItem
-                value="Not sure"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Not sure
-              </SelectItem>
-              <SelectItem
-                value="Other"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Other
-              </SelectItem>
+              <SelectItem value="NStarX">NStarX</SelectItem>
+              <SelectItem value="SHI">SHI</SelectItem>
+              <SelectItem value="NStarX + SHI">NStarX + SHI</SelectItem>
+              <SelectItem value="Not sure">Not sure</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
           {serverErrors?.brandingDirection ? (
@@ -326,18 +301,19 @@ export default function IntakeForm() {
             serverErrors?.description && "border-brand-amber focus-visible:ring-brand-amber"
           )}
         />
-        <div className="flex justify-between text-xs text-brand-ink/60">
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs text-brand-ink/60">
           <span>Minimum 50 characters</span>
-          {serverErrors?.description ? (
-            <span className="text-brand-amber flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {serverErrors.description}
-            </span>
-          ) : null}
+          <span>You can use Markdown formatting: **bold**, *italic*, - lists, [links](url)</span>
         </div>
+        {serverErrors?.description ? (
+          <div className="text-xs text-brand-amber flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {serverErrors.description}
+          </div>
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
         <div className="space-y-2">
           <Label>Desired Deadline</Label>
           <DeadlineField error={serverErrors?.desiredDeadline as string} />
@@ -346,34 +322,14 @@ export default function IntakeForm() {
         <div className="space-y-2">
           <Label htmlFor="priority">Priority</Label>
           <Select name="priority" defaultValue="Medium">
-            <SelectTrigger id="priority" className="bg-white hover:border-brand-purple data-[state=open]:border-brand-purple">
+            <SelectTrigger id="priority" className="bg-white hover:border-brand-purple-light data-[state=open]:border-brand-purple-light">
               <SelectValue placeholder="Select priority" />
             </SelectTrigger>
             <SelectContent className="bg-white border-brand-zebra">
-              <SelectItem
-                value="Low"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Low
-              </SelectItem>
-              <SelectItem
-                value="Medium"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Medium
-              </SelectItem>
-              <SelectItem
-                value="High"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                High
-              </SelectItem>
-              <SelectItem
-                value="Urgent"
-                className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-              >
-                Urgent
-              </SelectItem>
+              <SelectItem value="Low">Low</SelectItem>
+              <SelectItem value="Medium">Medium</SelectItem>
+              <SelectItem value="High">High</SelectItem>
+              <SelectItem value="Urgent">Urgent</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -386,10 +342,10 @@ export default function IntakeForm() {
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           className={cn(
-            "rounded-lg border-2 border-dashed p-6 transition-colors text-center",
+            "rounded-[4px] border-2 border-dashed p-4 md:p-6 transition-colors text-center",
             dragActive
-              ? "border-brand-purple bg-brand-purple/5"
-              : "border-brand-ink/20 bg-white hover:border-brand-purple/50"
+              ? "border-brand-purple-light bg-brand-purple/5"
+              : "border-brand-ink/20 bg-white hover:border-brand-purple-light/50"
           )}
         >
           <div className="flex flex-col items-center gap-2">
@@ -435,7 +391,7 @@ export default function IntakeForm() {
             {files.map((file, idx) => (
               <li
                 key={`${file.name}-${idx}`}
-                className="flex items-center justify-between rounded-md border bg-white p-3 text-sm"
+                className="flex items-center justify-between rounded-[4px] border bg-white p-2.5 md:p-3 text-sm"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <FileText className="h-4 w-4 shrink-0 text-brand-purple" />
@@ -468,7 +424,7 @@ export default function IntakeForm() {
           placeholder="https://drive.google.com/drive/folders/..."
           aria-invalid={Boolean(serverErrors?.driveUrl)}
           className={cn(
-            "bg-white focus-visible:ring-brand-purple",
+            "bg-white focus-visible:ring-brand-purple-light",
             serverErrors?.driveUrl && "border-brand-amber focus-visible:ring-brand-amber"
           )}
         />
@@ -481,7 +437,7 @@ export default function IntakeForm() {
       </div>
 
       {serverErrors?._form ? (
-        <div className="rounded-md bg-brand-amber/10 p-4 text-sm text-brand-amber border border-brand-amber/20">
+        <div className="rounded-[4px] bg-brand-amber/10 p-3 md:p-4 text-sm text-brand-amber border border-brand-amber/20">
           <p className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             {serverErrors._form}
@@ -493,12 +449,12 @@ export default function IntakeForm() {
         <Button
           type="submit"
           disabled={submitting}
-          className="w-full md:w-auto bg-brand-purple hover:bg-brand-purple-dark text-white"
+          className="w-full md:w-auto"
         >
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
+              Submitting…
             </>
           ) : (
             "Submit request"

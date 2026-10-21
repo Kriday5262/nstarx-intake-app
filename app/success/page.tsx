@@ -18,10 +18,10 @@ export default function SuccessPage({
     <>
       <Header />
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-12">
-          <Card className="max-w-xl mx-auto border-t-4 border-t-brand-lime shadow">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <Card className="max-w-xl mx-auto border-t-4 border-t-brand-purple rounded-[4px]">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-lime/20 text-brand-lime">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-8 w-8"
@@ -44,7 +44,7 @@ export default function SuccessPage({
                 Welcome! Your project request has been submitted. Shantanu will review it with Sujay and plan it alongside other priority work. You&apos;ll receive an email confirmation with your reference number.
               </p>
               {ref ? (
-                <div className="bg-brand-zebra rounded-lg p-5 border border-brand-purple/20">
+                <div className="bg-brand-zebra rounded-[4px] p-5 border border-brand-purple/20">
                   <p className="text-sm text-brand-ink/70 mb-1">
                     Your reference number
                   </p>
@@ -58,7 +58,7 @@ export default function SuccessPage({
               ) : null}
               <Button
                 asChild
-                className="bg-brand-purple hover:bg-brand-purple-dark text-white min-h-11"
+                className="min-h-11"
               >
                 <Link href="/">Submit another request</Link>
               </Button>

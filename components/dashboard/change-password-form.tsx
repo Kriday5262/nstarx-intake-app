@@ -57,8 +57,8 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
       {message && (
         <div
           className={cn(
-            "rounded-md p-3 text-sm flex items-start gap-2",
-            message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+            "rounded-[4px] p-3 text-sm flex items-start gap-2",
+            message.type === "success" ? "bg-brand-purple/10 text-brand-purple" : "bg-red-50 text-red-700"
           )}
         >
           {message.type === "success" ? (
@@ -109,7 +109,6 @@ export function ChangePasswordForm({ email }: ChangePasswordFormProps) {
         <Button
           type="submit"
           disabled={pending}
-          className="bg-brand-purple hover:bg-brand-purple-dark text-white"
         >
           {pending ? "Updating…" : "Update password"}
         </Button>

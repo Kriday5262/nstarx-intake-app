@@ -12,8 +12,12 @@ const config: Config = {
       colors: {
         brand: {
           purple: "#6464B4",
+          "purple-light": "#7A7AC4",
           "purple-dark": "#5050A0",
           ink: "#333F50",
+          gray: "#828282",
+          "gray-dark": "#6B6B6B",
+          "gray-light": "#E5E5E5",
           lime: "#B8D96B",
           "lime-dark": "#8CB428",
           sky: "#64A0DC",
@@ -70,8 +74,8 @@ const config: Config = {
         11: "2.75rem",
       },
       fontFamily: {
-        heading: ["var(--font-montserrat)", "Montserrat", "sans-serif"],
-        body: ["var(--font-nunito)", "Nunito Sans", "sans-serif"],
+        heading: ["var(--font-manrope)", "Manrope", "sans-serif"],
+        body: ["var(--font-inter)", "Inter", "sans-serif"],
       },
     },
   },

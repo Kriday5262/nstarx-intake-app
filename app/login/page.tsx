@@ -16,7 +16,7 @@ export default function LoginPage({
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-brand-zebra p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-brand-zebra p-6 md:p-8">
+      <div className="w-full max-w-md bg-white rounded-[4px] border border-brand-zebra p-6 md:p-8">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
             <Image

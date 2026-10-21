@@ -16,7 +16,7 @@ export default async function SettingsPage() {
         Settings
       </h1>
 
-      <section className="rounded-lg border border-brand-zebra bg-white shadow-sm p-5 md:p-6 max-w-2xl">
+      <section className="rounded-[4px] border border-brand-zebra bg-white p-5 md:p-6 max-w-2xl">
         <h2 className="font-heading text-lg text-brand-ink mb-4">Change Password</h2>
         <ChangePasswordForm email={admin.email} />
       </section>

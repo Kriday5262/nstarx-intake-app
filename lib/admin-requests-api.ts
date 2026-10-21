@@ -12,6 +12,8 @@ import { serializeTimestamp } from "@/lib/formatting";
 
 const priorities = ["Low", "Medium", "High", "Urgent"] as const;
 const assignees = ["Shantanu", "Sujay"] as const;
+const projectTypes = ["Presentation", "Document", "Video", "Website", "Graphics", "UI/UX", "Other"] as const;
+const brandingDirections = ["NStarX", "SHI", "NStarX + SHI", "Not sure", "Other"] as const;
 
 const statusBodySchema = z.object({
   status: z.enum(VALID_STATUSES),
@@ -35,6 +37,19 @@ const notesBodySchema = z.object({
 
 const commentBodySchema = z.object({
   content: z.string().min(1).max(5000),
+});
+
+const fullUpdateBodySchema = z.object({
+  projectTitle: z.string().min(1).max(500),
+  description: z.string().min(1).max(20000),
+  projectType: z.enum(projectTypes),
+  priority: z.enum(priorities),
+  status: z.enum(VALID_STATUSES),
+  dueDate: z.string().date().nullable(),
+  assignee: z.enum(assignees),
+  brandingDirection: z.enum(brandingDirections),
+  driveUrl: z.string().max(1000).nullable(),
+  internalNotes: z.string().max(10000),
 });
 
 function badRequest(message: string, status = 400) {
@@ -155,6 +170,79 @@ export async function DELETE_ONE(
   await db.delete(requests).where(eq(requests.id, id));
 
   return NextResponse.json({ ok: true, id, actor: admin.email });
+}
+
+/**
+ * PATCH /api/admin/requests/[id]
+ *
+ * Full editable update. Records activity for each changed field.
+ */
+export async function PATCH_FULL(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const { admin, requestRow } = await getRequestAndAdmin(params.id);
+  if (!requestRow) return badRequest("Request not found.", 404);
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest("Invalid JSON body.");
+  }
+
+  const parsed = fullUpdateBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues.map((i) => i.message).join(" "));
+  }
+
+  const next = parsed.data;
+  const old = requestRow;
+
+  const fields: { key: string; oldValue: string | null; newValue: string | null }[] = [
+    { key: "project_title", oldValue: old.projectTitle, newValue: next.projectTitle },
+    { key: "description", oldValue: old.description, newValue: next.description },
+    { key: "project_type", oldValue: old.projectType, newValue: next.projectType },
+    { key: "priority", oldValue: old.priority, newValue: next.priority },
+    { key: "status", oldValue: old.status, newValue: next.status },
+    { key: "due_date", oldValue: old.dueDate ? String(old.dueDate).slice(0, 10) : null, newValue: next.dueDate },
+    { key: "assignee", oldValue: old.assignee, newValue: next.assignee },
+    { key: "branding_direction", oldValue: old.brandingDirection, newValue: next.brandingDirection },
+    { key: "driveUrl", oldValue: old.driveUrl ?? null, newValue: next.driveUrl },
+    { key: "internal_notes", oldValue: old.internalNotes ?? null, newValue: next.internalNotes },
+  ];
+
+  const changed = fields.filter((f) => f.oldValue !== f.newValue);
+
+  await db
+    .update(requests)
+    .set({
+      projectTitle: next.projectTitle,
+      description: next.description,
+      projectType: next.projectType as typeof projectTypes[number],
+      priority: next.priority,
+      status: next.status as typeof VALID_STATUSES[number],
+      dueDate: next.dueDate,
+      assignee: next.assignee as typeof assignees[number],
+      brandingDirection: next.brandingDirection as typeof brandingDirections[number],
+      driveUrl: next.driveUrl,
+      internalNotes: next.internalNotes,
+    })
+    .where(eq(requests.id, requestRow.id));
+
+  for (const change of changed) {
+    await appendActivity(requestRow.id, admin.email, admin.name, change.key, change.oldValue, change.newValue);
+  }
+
+  if (old.assignee !== next.assignee) {
+    await notifyAssignee(
+      { id: requestRow.id, projectTitle: next.projectTitle, publicReference: old.publicReference, assignee: next.assignee },
+      old.assignee,
+      admin
+    );
+  }
+
+  return NextResponse.json({ ok: true, id: requestRow.id, changes: changed.length });
 }
 
 /**

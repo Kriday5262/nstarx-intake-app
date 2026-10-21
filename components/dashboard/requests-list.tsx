@@ -114,7 +114,7 @@ function isOverdue(value: string | null | undefined): boolean {
 function priorityClasses(priority: string) {
   switch (priority) {
     case "Low":
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-slate-100 text-slate-700 border-slate-200";
     case "Medium":
       return "bg-blue-100 text-blue-700 border-blue-200";
     case "High":
@@ -122,7 +122,7 @@ function priorityClasses(priority: string) {
     case "Urgent":
       return "bg-red-100 text-red-700 border-red-200";
     default:
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-slate-100 text-slate-700 border-slate-200";
   }
 }
 
@@ -185,7 +185,7 @@ function HeaderCell({
       type="button"
       onClick={() => onSort(sortKey)}
       className={cn(
-        "group flex w-full items-center gap-1.5 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-brand-zebra min-h-11",
+        "group flex w-full items-center gap-1.5 px-2 md:px-3 py-2 md:py-3 text-left text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-brand-zebra min-h-11",
         active ? "text-brand-purple" : "text-brand-ink/70"
       )}
     >
@@ -300,8 +300,8 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
     assigneeFilter !== "all";
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between">
+    <div className="space-y-3 md:space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between">
         <div className="relative w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-ink/40" />
           <Input
@@ -309,7 +309,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
             placeholder="Search title, description, requester…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white border-brand-zebra focus-visible:ring-brand-purple"
+            className="pl-9 bg-white border-brand-zebra focus-visible:ring-brand-purple-light"
           />
           {search && (
             <button
@@ -326,7 +326,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           <Button
             variant="outline"
             onClick={() => setShowFilters((v) => !v)}
-            className="flex-1 border-brand-zebra hover:bg-brand-purple/10 hover:text-brand-purple min-h-11"
+            className="flex-1 border-brand-zebra hover:bg-brand-gray-light min-h-11"
           >
             <SlidersHorizontal className="h-4 w-4 mr-1.5" />
             {showFilters ? "Hide filters" : "Filters"}
@@ -343,7 +343,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
           )}
         </div>
 
-        <div className="hidden md:flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="hidden md:flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
           <FilterSelect
             label="Status"
             value={statusFilter}
@@ -383,7 +383,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
 
       {/* Mobile filter panel */}
       {showFilters && (
-        <div className="md:hidden rounded-lg border border-brand-zebra bg-white p-4 space-y-3 shadow-sm">
+        <div className="md:hidden rounded-[4px] border border-brand-zebra bg-white p-3 space-y-3">
           <FilterSelect
             label="Status"
             value={statusFilter}
@@ -411,7 +411,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
         </div>
       )}
 
-      <div className="rounded-lg border border-brand-zebra bg-white shadow-sm overflow-hidden">
+      <div className="rounded-[4px] border border-brand-zebra bg-white overflow-hidden">
         {/* Desktop table */}
         <div className="hidden md:block">
           <table className="w-full text-sm">
@@ -500,9 +500,9 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     tabIndex={0}
                     onClick={openDetail}
                     onKeyDown={handleRowKey}
-                    className="bg-white hover:bg-brand-zebra/60 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-purple"
+                    className="bg-white hover:bg-brand-zebra/60 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-purple-light"
                   >
-                    <td className="px-3 py-3">
+                    <td className="px-2 md:px-3 py-2 md:py-3">
                       <div className="block font-medium text-brand-ink hover:text-brand-purple">
                         <div className="truncate max-w-[260px]" title={request.projectTitle}>
                           {request.projectTitle}
@@ -512,25 +512,25 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 font-medium text-brand-ink">
+                    <td className="px-2 md:px-3 py-2 md:py-3 font-medium text-brand-ink">
                       {request.fullName}
                     </td>
-                    <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
+                    <td className="px-2 md:px-3 py-2 md:py-3 text-brand-ink/80 whitespace-nowrap">
                       {request.projectType}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-2 md:px-3 py-2 md:py-3">
                       <Badge className={priorityClasses(request.priority)}>
                         {request.priority}
                       </Badge>
                     </td>
-                    <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
+                    <td className="px-2 md:px-3 py-2 md:py-3 text-brand-ink/80 whitespace-nowrap">
                       {request.status}
                     </td>
-                    <td className="px-3 py-3 text-brand-ink/80 whitespace-nowrap">
+                    <td className="px-2 md:px-3 py-2 md:py-3 text-brand-ink/80 whitespace-nowrap">
                       {request.assignee || "—"}
                     </td>
                     <td className={cn(
-                      "px-3 py-3 whitespace-nowrap",
+                      "px-2 md:px-3 py-2 md:py-3 whitespace-nowrap",
                       isOverdue(due) ? "text-red-600 bg-red-50 font-semibold" : "text-brand-ink/80"
                     )}>
                       {formatDate(due)}
@@ -551,7 +551,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
               <Link
                 key={request.id}
                 href={`/dashboard/requests/${request.id}`}
-                className="block p-4 space-y-3 bg-white hover:bg-brand-zebra/60 active:bg-brand-zebra"
+                className="block p-3 space-y-2 bg-white hover:bg-brand-zebra/60 active:bg-brand-zebra"
               >
                 <div className="min-w-0">
                   <div className="font-semibold text-brand-ink break-words">
@@ -561,7 +561,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                     {request.publicReference}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3 text-sm">
+                <div className="grid grid-cols-1 gap-2 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-xs text-brand-ink/50">Requester</div>
@@ -611,7 +611,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
         </div>
 
         {pageRows.length === 0 && (
-          <div className="p-8 text-center text-brand-ink/60">
+          <div className="p-6 md:p-8 text-center text-brand-ink/60">
             {hasFilters
               ? "No requests match the current filters."
               : "No open requests yet."}
@@ -620,8 +620,8 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-4 text-sm text-brand-ink/70">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-brand-ink/70">
           <span>
             Showing {sorted.length === 0 ? 0 : startIndex + 1}–
             {Math.min(startIndex + pageSize, sorted.length)} of {sorted.length}<span className="sr-only"> results</span>{" "}
@@ -637,7 +637,7 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
               value={String(pageSize)}
               onValueChange={(v) => setPageSize(Number(v))}
             >
-              <SelectTrigger id="page-size" className="h-11 w-[80px] bg-white border-brand-zebra focus:ring-brand-purple">
+              <SelectTrigger id="page-size" className="h-11 w-[80px] bg-white border-brand-zebra focus:ring-brand-purple-light">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border-brand-zebra">
@@ -645,7 +645,6 @@ export function RequestsList({ initialRequests }: RequestsListProps) {
                   <SelectItem
                     key={s}
                     value={String(s)}
-                    className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
                   >
                     {s}
                   </SelectItem>
@@ -719,24 +718,13 @@ function FilterSelect({
     <div className="flex flex-col gap-1">
       <label className="text-xs font-medium text-brand-ink/70">{label}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full sm:w-[150px] bg-white border-brand-zebra focus:ring-brand-purple hover:border-brand-purple data-[state=open]:border-brand-purple">
+        <SelectTrigger className="w-full sm:w-[150px] bg-white border-brand-zebra focus:ring-brand-purple-light hover:border-brand-purple-light data-[state=open]:border-brand-purple-light">
           <SelectValue placeholder={`All ${label}s`} />
         </SelectTrigger>
         <SelectContent className="bg-white border-brand-zebra">
-          <SelectItem
-            value="all"
-            className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-          >
-            All
-          </SelectItem>
+          <SelectItem value="all">All</SelectItem>
           {options.map((o) => (
-            <SelectItem
-              key={o}
-              value={o}
-              className="cursor-pointer focus:bg-brand-lime/20 focus:text-brand-ink data-[state=checked]:text-brand-purple"
-            >
-              {o}
-            </SelectItem>
+            <SelectItem key={o} value={o}>{o}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -754,7 +742,7 @@ function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
         className
       )}
     >
