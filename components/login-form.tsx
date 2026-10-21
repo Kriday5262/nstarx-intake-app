@@ -38,7 +38,9 @@ export default function LoginForm({ from }: { from: string }) {
 
         await response.json();
 
-        router.push(from.startsWith("/") ? from : "/dashboard");
+        const fallback = "/dashboard/requests";
+        const target = from.startsWith("/") ? from : fallback;
+        router.push(target === "/dashboard" ? fallback : target);
       } catch {
         setError("Invalid email or password.");
       } finally {

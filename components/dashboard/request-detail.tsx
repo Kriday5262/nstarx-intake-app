@@ -323,6 +323,7 @@ export function RequestDetail({ request, attachments }: RequestDetailProps) {
         return;
       }
       router.push("/dashboard/requests");
+      router.refresh();
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "Network error.");
     } finally {

@@ -12,7 +12,7 @@ export default function LoginPage({
 }: {
   searchParams?: { error?: string; from?: string };
 }) {
-  const from = searchParams?.from ?? "/dashboard";
+  const from = searchParams?.from ?? "/dashboard/requests";
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-brand-zebra p-4">
